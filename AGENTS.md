@@ -10,6 +10,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - Instead of npm use pnpm 
 - Instead of `pnpm build` use `pnpm run lint && pnpm run typecheck`
+- Do not run database migration commands like `pnpm run db-generate`, `pnpm run db-migrate`, `mysql ...`, etc
 
 # Tech stack
 
