@@ -14,6 +14,13 @@ interface ConnectionPayload {
   password?: string;
 }
 
+const SYSTEM_DATABASES = new Set([
+  "information_schema",
+  "mysql",
+  "performance_schema",
+  "sys",
+]);
+
 function parseErrorMessage(err: unknown): string {
   if (typeof err !== "object" || err === null) {
     return "An unexpected error occurred while connecting to the MySQL server.";
@@ -150,10 +157,10 @@ export async function POST(req: Request) {
       // Non-critical, continue
     }
 
-    // Fetch all databases
+    // Fetch user databases (excluding MySQL system databases)
     const [rows] = await connection.query("SHOW DATABASES;");
 
-    const databases: string[] = Array.isArray(rows)
+    const rawDatabases: string[] = Array.isArray(rows)
       ? rows
           .map((row) => {
             const r = row as Record<string, unknown>;
@@ -161,6 +168,10 @@ export async function POST(req: Request) {
           })
           .filter(Boolean)
       : [];
+
+    const databases = rawDatabases.filter(
+      (db) => !SYSTEM_DATABASES.has(db.toLowerCase())
+    );
 
     return NextResponse.json({
       success: true,

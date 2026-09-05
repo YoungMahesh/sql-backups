@@ -9,13 +9,6 @@ interface ServerInfo {
   version: string;
 }
 
-const SYSTEM_DATABASES = new Set([
-  "information_schema",
-  "mysql",
-  "performance_schema",
-  "sys",
-]);
-
 export function DatabaseExplorer() {
   // Connection Configuration
   const [connectMode, setConnectMode] = useState<"params" | "uri">("params");
@@ -35,7 +28,6 @@ export function DatabaseExplorer() {
 
   // Explorer UI State
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "user" | "system">("all");
   const [copiedDb, setCopiedDb] = useState<string | null>(null);
 
   const handleConnect = async (e?: React.FormEvent) => {
@@ -118,21 +110,9 @@ export function DatabaseExplorer() {
     }
   };
 
-  const userDbs = databases.filter((db) => !SYSTEM_DATABASES.has(db.toLowerCase()));
-  const systemDbs = databases.filter((db) => SYSTEM_DATABASES.has(db.toLowerCase()));
-
-  const filteredDatabases = databases.filter((db) => {
-    const matchesSearch = db.toLowerCase().includes(searchQuery.trim().toLowerCase());
-    if (!matchesSearch) return false;
-
-    if (filterType === "user") {
-      return !SYSTEM_DATABASES.has(db.toLowerCase());
-    }
-    if (filterType === "system") {
-      return SYSTEM_DATABASES.has(db.toLowerCase());
-    }
-    return true;
-  });
+  const filteredDatabases = databases.filter((db) =>
+    db.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -427,7 +407,7 @@ export function DatabaseExplorer() {
 
           {/* Databases Header & Filters */}
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-zinc-100">
+            <div className="flex items-center justify-between pb-5 border-b border-zinc-100">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -441,46 +421,9 @@ export function DatabaseExplorer() {
                     Databases on Server
                   </h3>
                   <p className="text-xs text-zinc-500">
-                    Total {databases.length} database{databases.length === 1 ? "" : "s"} discovered
+                    Total {databases.length} user database{databases.length === 1 ? "" : "s"} discovered
                   </p>
                 </div>
-              </div>
-
-              {/* Filter Tabs */}
-              <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-zinc-100 p-1">
-                <button
-                  type="button"
-                  onClick={() => setFilterType("all")}
-                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                    filterType === "all"
-                      ? "bg-white text-zinc-900 shadow-sm"
-                      : "text-zinc-600 hover:text-zinc-900"
-                  }`}
-                >
-                  All ({databases.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterType("user")}
-                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                    filterType === "user"
-                      ? "bg-white text-zinc-900 shadow-sm"
-                      : "text-zinc-600 hover:text-zinc-900"
-                  }`}
-                >
-                  User DBs ({userDbs.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterType("system")}
-                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                    filterType === "system"
-                      ? "bg-white text-zinc-900 shadow-sm"
-                      : "text-zinc-600 hover:text-zinc-900"
-                  }`}
-                >
-                  System ({systemDbs.length})
-                </button>
               </div>
             </div>
 
@@ -534,14 +477,13 @@ export function DatabaseExplorer() {
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">
                     {searchQuery
-                      ? `No databases match "${searchQuery}" in ${filterType} databases.`
-                      : "The connected MySQL server has no visible databases for this user."}
+                      ? `No databases match "${searchQuery}".`
+                      : "No user databases found on this MySQL server. (System databases are excluded)"}
                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredDatabases.map((dbName) => {
-                    const isSystem = SYSTEM_DATABASES.has(dbName.toLowerCase());
                     const isCopied = copiedDb === dbName;
 
                     return (
@@ -550,13 +492,7 @@ export function DatabaseExplorer() {
                         className="group flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 transition hover:border-zinc-400 hover:bg-white hover:shadow-xs"
                       >
                         <div className="flex items-center gap-3 min-w-0 pr-2">
-                          <div
-                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                              isSystem
-                                ? "bg-zinc-200/80 text-zinc-600"
-                                : "bg-emerald-100 text-emerald-800"
-                            }`}
-                          >
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                               <ellipse cx="12" cy="5" rx="9" ry="3" />
                               <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
@@ -567,17 +503,6 @@ export function DatabaseExplorer() {
                             <p className="truncate font-mono text-sm font-semibold text-zinc-900" title={dbName}>
                               {dbName}
                             </p>
-                            <div className="mt-0.5 flex items-center gap-1.5">
-                              <span
-                                className={`inline-flex items-center rounded-sm px-1.5 py-0.2 text-[10px] font-medium tracking-wide ${
-                                  isSystem
-                                    ? "bg-zinc-200 text-zinc-600"
-                                    : "bg-emerald-50 text-emerald-700"
-                                }`}
-                              >
-                                {isSystem ? "System DB" : "User DB"}
-                              </span>
-                            </div>
                           </div>
                         </div>
 
