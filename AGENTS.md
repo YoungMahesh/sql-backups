@@ -12,3 +12,17 @@
 - Authentication: [better-auth](https://better-auth.com/docs/basic-usage)
 - Database: MySQL with [drizzle-orm](https://orm.drizzle.team/docs/overview)
 - Object Storage: [Seafsweed](https://github.com/seaweedfs/seaweedfs) (S3-compatible storage)
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs are tracked as local markdown files in `.scratch/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical roles mapped 1:1 (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout (`CONTEXT.md` + `docs/adr/` at root). See `docs/agents/domain.md`.
