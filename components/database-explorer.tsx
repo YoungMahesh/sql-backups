@@ -138,19 +138,19 @@ export function DatabaseExplorer() {
     <div className="space-y-6">
       {/* Top Section / Card */}
       {!isConnected ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-100 pb-5 dark:border-zinc-800">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-100 pb-5">
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-2xl">
+              <h2 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
                 Connect to MySQL Server
               </h2>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="mt-1 text-sm text-zinc-500">
                 Connect via 4 individual parameters or paste a single connection string.
               </p>
             </div>
 
             {/* Mode Selector Tabs */}
-            <div className="flex rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800/80">
+            <div className="flex rounded-xl bg-zinc-100 p-1">
               <button
                 type="button"
                 onClick={() => {
@@ -159,8 +159,8 @@ export function DatabaseExplorer() {
                 }}
                 className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
                   connectMode === "params"
-                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white"
-                    : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+                    ? "bg-white text-zinc-900 shadow-sm"
+                    : "text-zinc-600 hover:text-zinc-900"
                 }`}
               >
                 4 Server Fields
@@ -173,8 +173,8 @@ export function DatabaseExplorer() {
                 }}
                 className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
                   connectMode === "uri"
-                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white"
-                    : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+                    ? "bg-white text-zinc-900 shadow-sm"
+                    : "text-zinc-600 hover:text-zinc-900"
                 }`}
               >
                 Connection String
@@ -184,9 +184,9 @@ export function DatabaseExplorer() {
 
           {/* Error Message */}
           {connectError && (
-            <div className="mb-6 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50/70 p-4 text-sm text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+            <div className="mb-6 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50/70 p-4 text-sm text-rose-800">
               <svg
-                className="mt-0.5 h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400"
+                className="mt-0.5 h-5 w-5 shrink-0 text-rose-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -210,7 +210,7 @@ export function DatabaseExplorer() {
                 <div className="sm:col-span-2 md:col-span-1">
                   <label
                     htmlFor="mysql-host"
-                    className="block text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300"
+                    className="block text-xs font-semibold uppercase tracking-wider text-zinc-700"
                   >
                     Server Path / Host <span className="text-rose-500">*</span>
                   </label>
@@ -222,7 +222,7 @@ export function DatabaseExplorer() {
                       value={host}
                       onChange={(e) => setHost(e.target.value)}
                       placeholder="localhost or 127.0.0.1"
-                      className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-100 dark:focus:border-zinc-200 dark:focus:bg-zinc-900 dark:focus:ring-zinc-200"
+                      className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
                     />
                   </div>
                   <p className="mt-1 text-[11px] text-zinc-400">Hostname, domain, or IP address</p>
@@ -232,7 +232,7 @@ export function DatabaseExplorer() {
                 <div className="sm:col-span-2 md:col-span-1">
                   <label
                     htmlFor="mysql-port"
-                    className="block text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300"
+                    className="block text-xs font-semibold uppercase tracking-wider text-zinc-700"
                   >
                     Server Port
                   </label>
@@ -243,7 +243,7 @@ export function DatabaseExplorer() {
                       value={port}
                       onChange={(e) => setPort(e.target.value)}
                       placeholder="3306"
-                      className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-100 dark:focus:border-zinc-200 dark:focus:bg-zinc-900 dark:focus:ring-zinc-200"
+                      className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
                     />
                   </div>
                   <p className="mt-1 text-[11px] text-zinc-400">Default MySQL port is 3306</p>
@@ -253,7 +253,7 @@ export function DatabaseExplorer() {
                 <div>
                   <label
                     htmlFor="mysql-user"
-                    className="block text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300"
+                    className="block text-xs font-semibold uppercase tracking-wider text-zinc-700"
                   >
                     Username <span className="text-rose-500">*</span>
                   </label>
@@ -265,7 +265,7 @@ export function DatabaseExplorer() {
                       value={user}
                       onChange={(e) => setUser(e.target.value)}
                       placeholder="root"
-                      className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-100 dark:focus:border-zinc-200 dark:focus:bg-zinc-900 dark:focus:ring-zinc-200"
+                      className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
                     />
                   </div>
                 </div>
@@ -275,7 +275,7 @@ export function DatabaseExplorer() {
                   <div className="flex items-center justify-between">
                     <label
                       htmlFor="mysql-password"
-                      className="block text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300"
+                      className="block text-xs font-semibold uppercase tracking-wider text-zinc-700"
                     >
                       Password
                     </label>
@@ -287,12 +287,12 @@ export function DatabaseExplorer() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Server password"
-                      className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-100 dark:focus:border-zinc-200 dark:focus:bg-zinc-900 dark:focus:ring-zinc-200"
+                      className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600"
                       tabIndex={-1}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
@@ -315,7 +315,7 @@ export function DatabaseExplorer() {
               <div>
                 <label
                   htmlFor="mysql-uri"
-                  className="block text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300"
+                  className="block text-xs font-semibold uppercase tracking-wider text-zinc-700"
                 >
                   MySQL Connection String <span className="text-rose-500">*</span>
                 </label>
@@ -327,28 +327,28 @@ export function DatabaseExplorer() {
                     value={connectionString}
                     onChange={(e) => setConnectionString(e.target.value)}
                     placeholder="mysql://user:password@localhost:3306"
-                    className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 font-mono text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-100 dark:focus:border-zinc-200 dark:focus:bg-zinc-900 dark:focus:ring-zinc-200"
+                    className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 font-mono text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
-                <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-                  Format: <code className="font-mono text-zinc-700 dark:text-zinc-300">mysql://username:password@host:port/database</code> (database name is optional)
+                <p className="mt-1.5 text-xs text-zinc-500">
+                  Format: <code className="font-mono text-zinc-700">mysql://username:password@host:port/database</code> (database name is optional)
                 </p>
               </div>
             )}
 
-            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-zinc-100">
               <button
                 type="button"
                 onClick={handleClear}
                 disabled={isConnecting}
-                className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900 focus-visible:outline-2 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+                className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900 focus-visible:outline-2"
               >
                 Clear
               </button>
               <button
                 type="submit"
                 disabled={isConnecting}
-                className="flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+                className="flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:opacity-60"
               >
                 {isConnecting ? (
                   <>
@@ -374,7 +374,7 @@ export function DatabaseExplorer() {
         /* Connected View */
         <div className="space-y-6">
           {/* Server Connection Banner */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
             <div className="flex items-start md:items-center gap-3.5">
               <div className="relative mt-1 md:mt-0 flex h-3 w-3 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -382,20 +382,20 @@ export function DatabaseExplorer() {
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                  <span className="text-sm font-bold text-zinc-900">
                     Connected to {serverInfo?.host}:{serverInfo?.port}
                   </span>
-                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
+                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
                     Active
                   </span>
                   {serverInfo?.version && serverInfo.version !== "Unknown" && (
-                    <span className="inline-flex items-center rounded-full bg-zinc-200/70 px-2 py-0.5 text-xs font-mono text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                    <span className="inline-flex items-center rounded-full bg-zinc-200/70 px-2 py-0.5 text-xs font-mono text-zinc-700">
                       v{serverInfo.version}
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-                  Logged in as user: <span className="font-mono font-medium text-zinc-900 dark:text-zinc-200">{serverInfo?.user}</span>
+                <p className="mt-0.5 text-xs text-zinc-600">
+                  Logged in as user: <span className="font-mono font-medium text-zinc-900">{serverInfo?.user}</span>
                 </p>
               </div>
             </div>
@@ -405,7 +405,7 @@ export function DatabaseExplorer() {
                 type="button"
                 onClick={() => handleConnect()}
                 disabled={isConnecting}
-                className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-50"
               >
                 <svg className={`h-3.5 w-3.5 ${isConnecting ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -415,7 +415,7 @@ export function DatabaseExplorer() {
               <button
                 type="button"
                 onClick={handleDisconnect}
-                className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3.5 py-2 text-xs font-semibold text-rose-700 shadow-sm transition hover:bg-rose-50 dark:border-rose-900/50 dark:bg-zinc-800 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3.5 py-2 text-xs font-semibold text-rose-700 shadow-sm transition hover:bg-rose-50"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -426,10 +426,10 @@ export function DatabaseExplorer() {
           </div>
 
           {/* Databases Header & Filters */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-zinc-100 dark:border-zinc-800">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-zinc-100">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                     <ellipse cx="12" cy="5" rx="9" ry="3" />
                     <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
@@ -437,24 +437,24 @@ export function DatabaseExplorer() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                  <h3 className="text-lg font-bold text-zinc-900">
                     Databases on Server
                   </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-zinc-500">
                     Total {databases.length} database{databases.length === 1 ? "" : "s"} discovered
                   </p>
                 </div>
               </div>
 
               {/* Filter Tabs */}
-              <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800/80">
+              <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-zinc-100 p-1">
                 <button
                   type="button"
                   onClick={() => setFilterType("all")}
                   className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
                     filterType === "all"
-                      ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white"
-                      : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+                      ? "bg-white text-zinc-900 shadow-sm"
+                      : "text-zinc-600 hover:text-zinc-900"
                   }`}
                 >
                   All ({databases.length})
@@ -464,8 +464,8 @@ export function DatabaseExplorer() {
                   onClick={() => setFilterType("user")}
                   className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
                     filterType === "user"
-                      ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white"
-                      : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+                      ? "bg-white text-zinc-900 shadow-sm"
+                      : "text-zinc-600 hover:text-zinc-900"
                   }`}
                 >
                   User DBs ({userDbs.length})
@@ -475,8 +475,8 @@ export function DatabaseExplorer() {
                   onClick={() => setFilterType("system")}
                   className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
                     filterType === "system"
-                      ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white"
-                      : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+                      ? "bg-white text-zinc-900 shadow-sm"
+                      : "text-zinc-600 hover:text-zinc-900"
                   }`}
                 >
                   System ({systemDbs.length})
@@ -498,13 +498,13 @@ export function DatabaseExplorer() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filter databases by name..."
-                  className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 py-2 pl-9 pr-8 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-100 dark:focus:border-zinc-200 dark:focus:bg-zinc-900"
+                  className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 py-2 pl-9 pr-8 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -517,7 +517,7 @@ export function DatabaseExplorer() {
             {/* Database List / Grid */}
             <div className="mt-5">
               {filteredDatabases.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-200 py-12 text-center dark:border-zinc-800">
+                <div className="rounded-xl border border-dashed border-zinc-200 py-12 text-center">
                   <svg
                     className="mx-auto h-8 w-8 text-zinc-400"
                     fill="none"
@@ -529,10 +529,10 @@ export function DatabaseExplorer() {
                     <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
                     <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
                   </svg>
-                  <p className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <p className="mt-2 text-sm font-semibold text-zinc-900">
                     No databases found
                   </p>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="mt-1 text-xs text-zinc-500">
                     {searchQuery
                       ? `No databases match "${searchQuery}" in ${filterType} databases.`
                       : "The connected MySQL server has no visible databases for this user."}
@@ -547,14 +547,14 @@ export function DatabaseExplorer() {
                     return (
                       <div
                         key={dbName}
-                        className="group flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 transition hover:border-zinc-400 hover:bg-white hover:shadow-xs dark:border-zinc-800 dark:bg-zinc-800/40 dark:hover:border-zinc-700 dark:hover:bg-zinc-800"
+                        className="group flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 transition hover:border-zinc-400 hover:bg-white hover:shadow-xs"
                       >
                         <div className="flex items-center gap-3 min-w-0 pr-2">
                           <div
                             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
                               isSystem
-                                ? "bg-zinc-200/80 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
-                                : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400"
+                                ? "bg-zinc-200/80 text-zinc-600"
+                                : "bg-emerald-100 text-emerald-800"
                             }`}
                           >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -564,15 +564,15 @@ export function DatabaseExplorer() {
                             </svg>
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100" title={dbName}>
+                            <p className="truncate font-mono text-sm font-semibold text-zinc-900" title={dbName}>
                               {dbName}
                             </p>
                             <div className="mt-0.5 flex items-center gap-1.5">
                               <span
                                 className={`inline-flex items-center rounded-sm px-1.5 py-0.2 text-[10px] font-medium tracking-wide ${
                                   isSystem
-                                    ? "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400"
-                                    : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                    ? "bg-zinc-200 text-zinc-600"
+                                    : "bg-emerald-50 text-emerald-700"
                                 }`}
                               >
                                 {isSystem ? "System DB" : "User DB"}
@@ -586,10 +586,10 @@ export function DatabaseExplorer() {
                           type="button"
                           onClick={() => copyToClipboard(dbName)}
                           title="Copy database name"
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-transparent text-zinc-400 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-700 dark:hover:border-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-transparent text-zinc-400 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-700"
                         >
                           {isCopied ? (
-                            <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                            <svg className="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                           ) : (

@@ -119,7 +119,7 @@ export default function Home() {
 
   if (isSessionLoading) {
     return (
-      <div className="flex min-h-screen flex-1 flex-col items-center justify-center bg-zinc-50 px-4 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      <div className="flex min-h-screen flex-1 flex-col items-center justify-center bg-zinc-50 px-4 text-zinc-900">
         <div className="flex flex-col items-center justify-center gap-3 py-6">
           <svg
             className="h-8 w-8 animate-spin text-zinc-500"
@@ -141,7 +141,7 @@ export default function Home() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm font-medium text-zinc-500">
             Checking session...
           </p>
         </div>
@@ -152,12 +152,12 @@ export default function Home() {
   // Authenticated View
   if (session?.user) {
     return (
-      <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      <div className="min-h-screen bg-zinc-50 text-zinc-900">
         {/* Top Navigation */}
-        <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/80">
+        <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-md">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-xs dark:bg-white dark:text-zinc-900">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-xs">
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <ellipse cx="12" cy="5" rx="9" ry="3" />
                   <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
@@ -168,7 +168,7 @@ export default function Home() {
                 <h1 className="text-base font-bold tracking-tight sm:text-lg">
                   DB Manage
                 </h1>
-                <span className="hidden sm:inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                <span className="hidden sm:inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-700">
                   MySQL Explorer
                 </span>
               </div>
@@ -176,13 +176,13 @@ export default function Home() {
 
             {/* User Profile & Logout */}
             <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2.5 rounded-full border border-zinc-200 bg-zinc-50 py-1 pl-1 pr-3 dark:border-zinc-800 dark:bg-zinc-800/50">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
+              <div className="hidden sm:flex items-center gap-2.5 rounded-full border border-zinc-200 bg-zinc-50 py-1 pl-1 pr-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white">
                   {session.user.name
                     ? session.user.name.slice(0, 2).toUpperCase()
                     : session.user.email?.slice(0, 2).toUpperCase() || "U"}
                 </div>
-                <span className="max-w-[150px] truncate text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <span className="max-w-[150px] truncate text-xs font-medium text-zinc-700">
                   {session.user.name || session.user.email}
                 </span>
               </div>
@@ -191,7 +191,7 @@ export default function Home() {
                 type="button"
                 onClick={handleLogout}
                 disabled={loading}
-                className="flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-rose-950/40 dark:hover:border-rose-900/50 dark:hover:text-rose-400"
+                className="flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 disabled:opacity-50"
               >
                 {loading ? (
                   <svg className="h-3.5 w-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -219,11 +219,11 @@ export default function Home() {
 
   // Guest / Unauthenticated View
   return (
-    <div className="flex min-h-screen flex-1 flex-col items-center justify-center bg-zinc-50 px-4 py-12 text-zinc-900 transition-colors dark:bg-zinc-950 dark:text-zinc-100">
+    <div className="flex min-h-screen flex-1 flex-col items-center justify-center bg-zinc-50 px-4 py-12 text-zinc-900">
       <div className="w-full max-w-md">
         {/* Header Branding */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-900 text-white shadow-md dark:bg-white dark:text-zinc-900">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-900 text-white shadow-md">
             <svg
               className="h-6 w-6"
               fill="none"
@@ -241,7 +241,7 @@ export default function Home() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             {mode === "login" ? "Welcome to DB Manage" : "Create an Account"}
           </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-zinc-600">
             {mode === "login"
               ? "Sign in to connect and manage your MySQL databases"
               : "Sign up to start connecting and managing your databases"}
@@ -249,16 +249,16 @@ export default function Home() {
         </div>
 
         {/* Auth Form Card (Sign In / Sign Up) */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
           {/* Mode Switcher Tabs */}
-          <div className="mb-6 flex rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">
+          <div className="mb-6 flex rounded-xl bg-zinc-100 p-1">
             <button
               type="button"
               onClick={() => handleModeSwitch("login")}
               className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
                 mode === "login"
-                  ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-900"
               }`}
             >
               Log In
@@ -268,8 +268,8 @@ export default function Home() {
               onClick={() => handleModeSwitch("signup")}
               className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
                 mode === "signup"
-                  ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-900"
               }`}
             >
               Sign Up
@@ -278,7 +278,7 @@ export default function Home() {
 
           {/* Error Message Alert */}
           {error && (
-            <div className="mb-4 flex items-start gap-2 rounded-xl bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-400">
+            <div className="mb-4 flex items-start gap-2 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
               <svg
                 className="mt-0.5 h-4 w-4 shrink-0"
                 fill="none"
@@ -296,7 +296,7 @@ export default function Home() {
 
           {/* Success Message Alert */}
           {successMessage && (
-            <div className="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+            <div className="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">
               <svg
                 className="mt-0.5 h-4 w-4 shrink-0"
                 fill="none"
@@ -316,7 +316,7 @@ export default function Home() {
               <div>
                 <label
                   htmlFor="login-email"
-                  className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                  className="block text-sm font-medium text-zinc-700"
                 >
                   Email Address
                 </label>
@@ -329,7 +329,7 @@ export default function Home() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="block w-full rounded-xl border border-zinc-300 bg-transparent px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:focus:border-zinc-100 dark:focus:ring-zinc-100"
+                    className="block w-full rounded-xl border border-zinc-300 bg-transparent px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
               </div>
@@ -338,7 +338,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <label
                     htmlFor="login-password"
-                    className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                    className="block text-sm font-medium text-zinc-700"
                   >
                     Password
                   </label>
@@ -352,12 +352,12 @@ export default function Home() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="block w-full rounded-xl border border-zinc-300 bg-transparent px-3.5 py-2.5 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:focus:border-zinc-100 dark:focus:ring-zinc-100"
+                    className="block w-full rounded-xl border border-zinc-300 bg-transparent px-3.5 py-2.5 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600"
                     tabIndex={-1}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
@@ -379,7 +379,7 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -410,12 +410,12 @@ export default function Home() {
                 )}
               </button>
 
-              <p className="pt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="pt-2 text-center text-xs text-zinc-500">
                 Don&apos;t have an account?{" "}
                 <button
                   type="button"
                   onClick={() => handleModeSwitch("signup")}
-                  className="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300"
+                  className="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-700"
                 >
                   Sign up now
                 </button>
@@ -427,7 +427,7 @@ export default function Home() {
               <div>
                 <label
                   htmlFor="signup-name"
-                  className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                  className="block text-sm font-medium text-zinc-700"
                 >
                   Full Name
                 </label>
@@ -440,7 +440,7 @@ export default function Home() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Jane Doe"
-                    className="block w-full rounded-xl border border-zinc-300 bg-transparent px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:focus:border-zinc-100 dark:focus:ring-zinc-100"
+                    className="block w-full rounded-xl border border-zinc-300 bg-transparent px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
               </div>
@@ -448,7 +448,7 @@ export default function Home() {
               <div>
                 <label
                   htmlFor="signup-email"
-                  className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                  className="block text-sm font-medium text-zinc-700"
                 >
                   Email Address
                 </label>
@@ -461,7 +461,7 @@ export default function Home() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="block w-full rounded-xl border border-zinc-300 bg-transparent px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:focus:border-zinc-100 dark:focus:ring-zinc-100"
+                    className="block w-full rounded-xl border border-zinc-300 bg-transparent px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
               </div>
@@ -469,7 +469,7 @@ export default function Home() {
               <div>
                 <label
                   htmlFor="signup-password"
-                  className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                  className="block text-sm font-medium text-zinc-700"
                 >
                   Password
                 </label>
@@ -482,12 +482,12 @@ export default function Home() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 8 characters"
-                    className="block w-full rounded-xl border border-zinc-300 bg-transparent px-3.5 py-2.5 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:focus:border-zinc-100 dark:focus:ring-zinc-100"
+                    className="block w-full rounded-xl border border-zinc-300 bg-transparent px-3.5 py-2.5 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600"
                     tabIndex={-1}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
@@ -509,7 +509,7 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -540,12 +540,12 @@ export default function Home() {
                 )}
               </button>
 
-              <p className="pt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="pt-2 text-center text-xs text-zinc-500">
                 Already have an account?{" "}
                 <button
                   type="button"
                   onClick={() => handleModeSwitch("login")}
-                  className="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300"
+                  className="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-700"
                 >
                   Log in
                 </button>
