@@ -1,0 +1,531 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+
+export interface BackupItem {
+  id: string;
+  userId: string;
+  databaseName: string;
+  host: string;
+  port: number;
+  s3Key: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes <= 0 || isNaN(bytes)) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const unitIndex = Math.min(i, units.length - 1);
+
+  if (unitIndex === 0) {
+    return `${bytes} B`;
+  }
+
+  const value = bytes / Math.pow(1024, unitIndex);
+  return `${value.toFixed(1)} ${units[unitIndex]}`;
+}
+
+function formatRelativeTime(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHours = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSec < 60) return "Just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
+interface BackupManagerProps {
+  onBackupsCountChange?: (count: number) => void;
+}
+
+export function BackupManager({ onBackupsCountChange }: BackupManagerProps) {
+  const [backups, setBackups] = useState<BackupItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  const fetchBackups = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/mysql/backups");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load database backups.");
+      }
+      const list: BackupItem[] = data.backups || [];
+      setBackups(list);
+      onBackupsCountChange?.(list.length);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load database backups.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [onBackupsCountChange]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function load() {
+      try {
+        const res = await fetch("/api/mysql/backups");
+        const data = await res.json();
+        if (!ignore) {
+          if (!res.ok) {
+            setError(data.error || "Failed to load database backups.");
+          } else {
+            const list: BackupItem[] = data.backups || [];
+            setBackups(list);
+            setError(null);
+            onBackupsCountChange?.(list.length);
+          }
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          const message =
+            err instanceof Error ? err.message : "Failed to load database backups.";
+          setError(message);
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      ignore = true;
+    };
+  }, [onBackupsCountChange]);
+
+  const handleDownload = async (backup: BackupItem) => {
+    setDownloadingId(backup.id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/mysql/backups/${backup.id}/download`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate download link.");
+      }
+
+      if (data.downloadUrl) {
+        // Trigger direct browser download
+        const link = document.createElement("a");
+        link.href = data.downloadUrl;
+        link.download = data.filename || `${backup.databaseName}.sql.gz`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to download backup.";
+      setError(message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/mysql/backups/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete backup.");
+      }
+
+      setBackups((prev) => {
+        const next = prev.filter((b) => b.id !== id);
+        onBackupsCountChange?.(next.length);
+        return next;
+      });
+      setConfirmDeleteId(null);
+      setActionSuccess("Backup deleted successfully.");
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to delete backup.";
+      setError(message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const filteredBackups = backups.filter((b) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      b.databaseName.toLowerCase().includes(q) ||
+      b.host.toLowerCase().includes(q) ||
+      String(b.port).includes(q)
+    );
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Header Card */}
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-100 pb-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-xs">
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                />
+              </svg>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
+                  Database Backups
+                </h2>
+                <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-700">
+                  {backups.length}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                Compressed SQL dumps (.sql.gz) stored in S3-compatible object storage.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={fetchBackups}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:bg-zinc-50 disabled:opacity-50"
+          >
+            <svg
+              className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        {/* Action Success Alert */}
+        {actionSuccess && (
+          <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700">
+            <svg
+              className="h-4 w-4 shrink-0 text-emerald-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>{actionSuccess}</span>
+          </div>
+        )}
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mt-4 flex items-center justify-between rounded-xl bg-rose-50 p-3.5 text-xs text-rose-700">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={fetchBackups}
+              className="font-semibold underline hover:text-rose-900 ml-2"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Search Filter */}
+        <div className="mt-5">
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-400">
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search backups by database name or server host..."
+              className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 py-2 pl-9 pr-8 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Backups List */}
+        <div className="mt-6">
+          {isLoading && backups.length === 0 ? (
+            <div className="flex items-center justify-center py-12 text-zinc-400">
+              <svg
+                className="h-5 w-5 animate-spin mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span className="text-xs">Loading database backups...</span>
+            </div>
+          ) : backups.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-zinc-200 py-12 text-center">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-400">
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                  />
+                </svg>
+              </div>
+              <p className="mt-3 text-sm font-semibold text-zinc-800">
+                No database backups yet
+              </p>
+              <p className="mt-1 text-xs text-zinc-400 max-w-sm mx-auto">
+                Connect to any MySQL server in the Database Explorer tab and click the{" "}
+                <span className="font-semibold text-zinc-600">Backup</span> button next to any database to create an instant S3 backup.
+              </p>
+            </div>
+          ) : filteredBackups.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-zinc-200 py-8 text-center text-xs text-zinc-500">
+              No backups match &quot;{searchQuery}&quot;.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredBackups.map((backup) => {
+                const isDownloading = downloadingId === backup.id;
+                const isDeleting = deletingId === backup.id;
+                const isConfirmingDelete = confirmDeleteId === backup.id;
+
+                return (
+                  <div
+                    key={backup.id}
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 rounded-xl border border-zinc-200/80 bg-zinc-50/40 p-4 transition hover:border-zinc-300 hover:bg-white hover:shadow-2xs"
+                  >
+                    {/* Database & Server Details */}
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="font-mono font-bold text-sm text-zinc-900">
+                          {backup.databaseName}
+                        </span>
+                        <span className="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
+                          {backup.host}:{backup.port}
+                        </span>
+                        <span className="inline-flex items-center rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700">
+                          {formatBytes(backup.sizeBytes)}
+                        </span>
+                        <span
+                          className="text-[11px] text-zinc-400"
+                          title={new Date(backup.createdAt).toLocaleString()}
+                        >
+                          • {formatRelativeTime(backup.createdAt)}
+                        </span>
+                      </div>
+
+                      <p
+                        className="font-mono text-[11px] text-zinc-400 truncate max-w-xl"
+                        title={backup.s3Key}
+                      >
+                        {backup.s3Key}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      {isConfirmingDelete ? (
+                        <div className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50/60 p-1">
+                          <span className="text-xs text-rose-700 font-medium pl-1">
+                            Delete?
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(backup.id)}
+                            disabled={isDeleting}
+                            className="rounded-md bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white shadow-2xs transition hover:bg-rose-700 disabled:opacity-50"
+                          >
+                            {isDeleting ? "..." : "Confirm"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Download Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleDownload(backup)}
+                            disabled={isDownloading}
+                            title="Download backup (.sql.gz) from S3"
+                            className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+                          >
+                            {isDownloading ? (
+                              <>
+                                <svg
+                                  className="h-3.5 w-3.5 animate-spin"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
+                                </svg>
+                                <span>Preparing...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg
+                                  className="h-3.5 w-3.5 text-zinc-500"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth="2"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                  />
+                                </svg>
+                                <span>Download</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(backup.id)}
+                            title="Delete backup"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-zinc-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                          >
+                            <svg
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              strokeWidth="2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

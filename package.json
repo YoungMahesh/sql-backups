@@ -8,11 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "dotenvx run -- tsx --test lib/crypto.test.ts",
+    "test": "dotenvx run -- tsx --test lib/*.test.ts",
     "db-generate": "dotenvx run -- drizzle-kit generate",
     "db-migrate": "dotenvx run -- drizzle-kit migrate"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1127.0",
+    "@aws-sdk/lib-storage": "^3.1127.0",
+    "@aws-sdk/s3-request-presigner": "^3.1127.0",
     "better-auth": "^1.7.2",
     "drizzle-orm": "1.0.0-rc.4",
     "mysql2": "^3.24.2",

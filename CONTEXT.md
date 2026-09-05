@@ -16,3 +16,7 @@ _Avoid_: Admin DB, Internal DB, Root DB
 A stored MySQL connection string associated with an authenticated user account, representing a previously verified server target. Stored encrypted at rest and presented with masked credentials in the dashboard.
 _Avoid_: Connection History, Saved DB, Server Profile
 
+**Database Backup**:
+An exported snapshot of a User Database's schema and records, serialized as a compressed SQL dump, stored in S3-compatible object storage, and registered with metadata in the application database.
+_Avoid_: Dump, Snapshot, DB Export, Archive
+

@@ -41,7 +41,21 @@ function formatRelativeTime(dateString: string): string {
   }
 }
 
-export function DatabaseExplorer() {
+interface ActiveConnectionState {
+  mode: "params" | "uri" | "saved";
+  host?: string;
+  port?: number;
+  user?: string;
+  password?: string;
+  connectionString?: string;
+  savedConnectionId?: string;
+}
+
+interface DatabaseExplorerProps {
+  onBackupCreated?: () => void;
+}
+
+export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}) {
   // Connection Configuration
   const [connectMode, setConnectMode] = useState<"params" | "uri">("params");
   const [host, setHost] = useState("localhost");
@@ -58,6 +72,12 @@ export function DatabaseExplorer() {
   const [isConnected, setIsConnected] = useState(false);
   const [databases, setDatabases] = useState<string[]>([]);
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
+  const [activeConnection, setActiveConnection] = useState<ActiveConnectionState | null>(null);
+
+  // Backup State
+  const [backingUpDb, setBackingUpDb] = useState<string | null>(null);
+  const [backupSuccess, setBackupSuccess] = useState<{ dbName: string; message: string } | null>(null);
+  const [backupError, setBackupError] = useState<{ dbName: string; message: string } | null>(null);
 
   // Saved Connections State
   const [savedConnections, setSavedConnections] = useState<SavedConnectionItem[]>([]);
@@ -69,7 +89,6 @@ export function DatabaseExplorer() {
 
   // Explorer UI State
   const [searchQuery, setSearchQuery] = useState("");
-  const [copiedDb, setCopiedDb] = useState<string | null>(null);
 
   const fetchSavedConnections = useCallback(async () => {
     setIsLoadingConnections(true);
@@ -143,7 +162,7 @@ export function DatabaseExplorer() {
     setConnectingId(null);
 
     try {
-      const payload =
+      const payload: ActiveConnectionState =
         connectMode === "uri"
           ? {
               mode: "uri",
@@ -171,6 +190,7 @@ export function DatabaseExplorer() {
         throw new Error(data.error || "Failed to connect to MySQL server.");
       }
 
+      setActiveConnection(payload);
       handleConnectionSuccess(data);
     } catch (err: unknown) {
       const message =
@@ -189,15 +209,17 @@ export function DatabaseExplorer() {
     setConnectingId(id);
 
     try {
+      const payload: ActiveConnectionState = {
+        mode: "saved",
+        savedConnectionId: id,
+      };
+
       const res = await fetch("/api/mysql/databases", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          mode: "saved",
-          savedConnectionId: id,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -206,6 +228,7 @@ export function DatabaseExplorer() {
         throw new Error(data.error || "Failed to connect to MySQL server.");
       }
 
+      setActiveConnection(payload);
       handleConnectionSuccess(data);
     } catch (err: unknown) {
       const message =
@@ -274,10 +297,13 @@ export function DatabaseExplorer() {
 
   const handleDisconnect = () => {
     setIsConnected(false);
+    setActiveConnection(null);
     setDatabases([]);
     setServerInfo(null);
     setSearchQuery("");
     setConnectError(null);
+    setBackupSuccess(null);
+    setBackupError(null);
     fetchSavedConnections();
   };
 
@@ -293,15 +319,45 @@ export function DatabaseExplorer() {
     setConnectError(null);
   };
 
-  const copyToClipboard = async (dbName: string) => {
+  const handleBackup = async (dbName: string) => {
+    if (!activeConnection || backingUpDb) return;
+
+    setBackingUpDb(dbName);
+    setBackupSuccess(null);
+    setBackupError(null);
+
     try {
-      await navigator.clipboard.writeText(dbName);
-      setCopiedDb(dbName);
-      setTimeout(() => {
-        setCopiedDb((prev) => (prev === dbName ? null : prev));
-      }, 2000);
-    } catch {
-      // Fallback if clipboard API is unavailable
+      const res = await fetch("/api/mysql/backups", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          databaseName: dbName,
+          connection: activeConnection,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create database backup.");
+      }
+
+      setBackupSuccess({
+        dbName,
+        message: `Backup for "${dbName}" was successfully uploaded to S3!`,
+      });
+      onBackupCreated?.();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to create database backup.";
+      setBackupError({
+        dbName,
+        message,
+      });
+    } finally {
+      setBackingUpDb(null);
     }
   };
 
@@ -867,6 +923,45 @@ export function DatabaseExplorer() {
               </div>
             </div>
 
+            {/* Backup Notifications */}
+            {backupSuccess && (
+              <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{backupSuccess.message}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBackupSuccess(null)}
+                  className="text-emerald-700 hover:text-emerald-900 font-bold ml-2"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {backupError && (
+              <div className="mt-4 flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 shrink-0 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span>{backupError.message}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBackupError(null)}
+                  className="text-rose-700 hover:text-rose-900 font-bold ml-2"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {/* Database List / Grid */}
             <div className="mt-5">
               {filteredDatabases.length === 0 ? (
@@ -894,7 +989,7 @@ export function DatabaseExplorer() {
               ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredDatabases.map((dbName) => {
-                    const isCopied = copiedDb === dbName;
+                    const isBackingUp = backingUpDb === dbName;
 
                     return (
                       <div
@@ -916,22 +1011,29 @@ export function DatabaseExplorer() {
                           </div>
                         </div>
 
-                        {/* Copy button */}
+                        {/* Backup button */}
                         <button
                           type="button"
-                          onClick={() => copyToClipboard(dbName)}
-                          title="Copy database name"
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-transparent text-zinc-400 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-700"
+                          onClick={() => handleBackup(dbName)}
+                          disabled={backingUpDb !== null}
+                          title={`Backup ${dbName} to S3`}
+                          className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
                         >
-                          {isCopied ? (
-                            <svg className="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
+                          {isBackingUp ? (
+                            <>
+                              <svg className="h-3.5 w-3.5 animate-spin text-zinc-600" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <span>Backing up...</span>
+                            </>
                           ) : (
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                              <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                            </svg>
+                            <>
+                              <svg className="h-3.5 w-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                              </svg>
+                              <span>Backup</span>
+                            </>
                           )}
                         </button>
                       </div>

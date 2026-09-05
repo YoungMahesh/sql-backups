@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { DatabaseExplorer } from "@/components/database-explorer";
+import { BackupManager } from "@/components/backup-manager";
 
 export default function Home() {
   const { data: session, isPending: isSessionLoading } = authClient.useSession();
+
+  const [activeTab, setActiveTab] = useState<"explorer" | "backups">("explorer");
+  const [backupsCount, setBackupsCount] = useState<number | null>(null);
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [name, setName] = useState("");
@@ -24,6 +28,26 @@ export default function Home() {
     setError(null);
     setSuccessMessage(null);
   };
+
+  useEffect(() => {
+    if (!session?.user) return;
+    let ignore = false;
+    async function loadCount() {
+      try {
+        const res = await fetch("/api/mysql/backups");
+        const data = await res.json();
+        if (!ignore && res.ok && Array.isArray(data.backups)) {
+          setBackupsCount(data.backups.length);
+        }
+      } catch {
+        // Non-critical, ignore
+      }
+    }
+    loadCount();
+    return () => {
+      ignore = true;
+    };
+  }, [session?.user]);
 
   const handleModeSwitch = (newMode: "login" | "signup") => {
     resetForm();
@@ -211,7 +235,74 @@ export default function Home() {
 
         {/* Dashboard Main Workspace */}
         <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-          <DatabaseExplorer />
+          {/* Top-Level Navigation Tabs */}
+          <div className="mb-6 flex items-center justify-between border-b border-zinc-200 pb-3">
+            <div className="flex gap-2 rounded-xl bg-zinc-100 p-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab("explorer")}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition ${
+                  activeTab === "explorer"
+                    ? "bg-white text-zinc-900 shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <ellipse cx="12" cy="5" rx="9" ry="3" />
+                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                </svg>
+                <span>Database Explorer</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("backups")}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition ${
+                  activeTab === "backups"
+                    ? "bg-white text-zinc-900 shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                  />
+                </svg>
+                <span>Backups</span>
+                {backupsCount !== null && backupsCount > 0 && (
+                  <span className="inline-flex items-center rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-bold text-zinc-800">
+                    {backupsCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className={activeTab === "explorer" ? "block" : "hidden"}>
+            <DatabaseExplorer
+              onBackupCreated={() => {
+                setBackupsCount((prev) => (prev !== null ? prev + 1 : 1));
+              }}
+            />
+          </div>
+
+          {activeTab === "backups" && (
+            <BackupManager onBackupsCountChange={setBackupsCount} />
+          )}
         </main>
       </div>
     );
