@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test": "dotenvx run -- tsx --test lib/crypto.test.ts",
     "db-generate": "dotenvx run -- drizzle-kit generate",
     "db-migrate": "dotenvx run -- drizzle-kit migrate"
   },

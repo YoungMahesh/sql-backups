@@ -2,16 +2,27 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import mysql, { type Connection } from "mysql2/promise";
+import crypto from "node:crypto";
+import { db } from "@/db";
+import { savedConnection } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
+import {
+  decrypt,
+  encrypt,
+  parseConnectionString,
+  serializeToConnectionString,
+} from "@/lib/crypto";
 
 export const runtime = "nodejs";
 
 interface ConnectionPayload {
-  mode: "uri" | "params";
+  mode: "uri" | "params" | "saved";
   connectionString?: string;
   host?: string;
   port?: number | string;
   user?: string;
   password?: string;
+  savedConnectionId?: string;
 }
 
 const SYSTEM_DATABASES = new Set([
@@ -68,8 +79,55 @@ export async function POST(req: Request) {
     let displayHost = "localhost";
     let displayPort = 3306;
     let displayUser = "root";
+    let targetDatabase: string | undefined = undefined;
+    let canonicalUri = "";
 
-    if (body.mode === "uri") {
+    if (body.mode === "saved") {
+      if (!body.savedConnectionId) {
+        return NextResponse.json(
+          { error: "Saved connection ID is required." },
+          { status: 400 }
+        );
+      }
+
+      const [saved] = await db
+        .select()
+        .from(savedConnection)
+        .where(
+          and(
+            eq(savedConnection.id, body.savedConnectionId),
+            eq(savedConnection.userId, session.user.id)
+          )
+        )
+        .limit(1);
+
+      if (!saved) {
+        return NextResponse.json(
+          { error: "Saved connection not found." },
+          { status: 404 }
+        );
+      }
+
+      try {
+        canonicalUri = decrypt(saved.encryptedConnectionString);
+      } catch {
+        return NextResponse.json(
+          { error: "Could not decrypt saved connection credentials." },
+          { status: 500 }
+        );
+      }
+
+      const parsed = parseConnectionString(canonicalUri);
+      displayHost = parsed.host;
+      displayPort = parsed.port;
+      displayUser = parsed.user;
+      targetDatabase = parsed.database;
+
+      connectionOptions = {
+        uri: canonicalUri,
+        connectTimeout: 10000,
+      };
+    } else if (body.mode === "uri") {
       let uri = body.connectionString?.trim() || "";
       if (!uri) {
         return NextResponse.json(
@@ -84,15 +142,16 @@ export async function POST(req: Request) {
       }
 
       try {
-        const parsed = new URL(uri);
-        displayHost = parsed.hostname || "localhost";
-        displayPort = parsed.port ? parseInt(parsed.port, 10) : 3306;
-        displayUser = decodeURIComponent(parsed.username) || "root";
+        const parsed = parseConnectionString(uri);
+        displayHost = parsed.host;
+        displayPort = parsed.port;
+        displayUser = parsed.user;
+        targetDatabase = parsed.database;
       } catch {
-        // If standard URL parsing fails, fallback
         displayHost = "custom-connection";
       }
 
+      canonicalUri = uri;
       connectionOptions = {
         uri,
         connectTimeout: 10000,
@@ -133,6 +192,13 @@ export async function POST(req: Request) {
       displayPort = port;
       displayUser = user;
 
+      canonicalUri = serializeToConnectionString({
+        host,
+        port,
+        user,
+        password,
+      });
+
       connectionOptions = {
         host,
         port,
@@ -172,6 +238,66 @@ export async function POST(req: Request) {
     const databases = rawDatabases.filter(
       (db) => !SYSTEM_DATABASES.has(db.toLowerCase())
     );
+
+    // Automatically store / update saved connection upon successful connection
+    if (body.mode === "saved" && body.savedConnectionId) {
+      try {
+        await db
+          .update(savedConnection)
+          .set({ updatedAt: new Date() })
+          .where(
+            and(
+              eq(savedConnection.id, body.savedConnectionId),
+              eq(savedConnection.userId, session.user.id)
+            )
+          );
+      } catch (persistErr) {
+        console.error("Failed to bump saved connection timestamp:", persistErr);
+      }
+    } else if (canonicalUri) {
+      try {
+        const [existing] = await db
+          .select({ id: savedConnection.id })
+          .from(savedConnection)
+          .where(
+            and(
+              eq(savedConnection.userId, session.user.id),
+              eq(savedConnection.host, displayHost),
+              eq(savedConnection.port, displayPort),
+              eq(savedConnection.username, displayUser)
+            )
+          )
+          .limit(1);
+
+        const encrypted = encrypt(canonicalUri);
+        const now = new Date();
+
+        if (existing) {
+          await db
+            .update(savedConnection)
+            .set({
+              encryptedConnectionString: encrypted,
+              updatedAt: now,
+              database: targetDatabase || null,
+            })
+            .where(eq(savedConnection.id, existing.id));
+        } else {
+          await db.insert(savedConnection).values({
+            id: crypto.randomUUID(),
+            userId: session.user.id,
+            host: displayHost,
+            port: displayPort,
+            username: displayUser,
+            database: targetDatabase || null,
+            encryptedConnectionString: encrypted,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+      } catch (persistErr) {
+        console.error("Failed to persist saved connection:", persistErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,
