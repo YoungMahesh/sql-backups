@@ -7,7 +7,7 @@ import { databaseBackup, savedConnection } from "@/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import type { ConnectionOptions } from "mysql2/promise";
 import { decrypt, parseConnectionString } from "@/lib/crypto";
-import { dumpDatabaseToS3 } from "@/lib/mysql-dumper";
+import { backupDatabaseToS3, SYSTEM_DATABASES } from "@/lib/mysql-backup";
 
 export const runtime = "nodejs";
 
@@ -23,13 +23,6 @@ interface BackupRequestBody {
     savedConnectionId?: string;
   };
 }
-
-const SYSTEM_DATABASES = new Set([
-  "information_schema",
-  "mysql",
-  "performance_schema",
-  "sys",
-]);
 
 /**
  * GET /api/mysql/backups
@@ -208,7 +201,7 @@ export async function POST(req: Request) {
     }
 
     // Execute streaming backup to S3
-    const dumpResult = await dumpDatabaseToS3({
+    const backupResult = await backupDatabaseToS3({
       connectionOptions,
       databaseName: cleanDbName,
       userId: session.user.id,
@@ -224,8 +217,8 @@ export async function POST(req: Request) {
       databaseName: cleanDbName,
       host: displayHost,
       port: displayPort,
-      s3Key: dumpResult.s3Key,
-      sizeBytes: dumpResult.sizeBytes,
+      s3Key: backupResult.s3Key,
+      sizeBytes: backupResult.sizeBytes,
       createdAt: now,
     });
 

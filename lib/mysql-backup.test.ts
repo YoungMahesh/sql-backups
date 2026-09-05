@@ -1,8 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { escapeIdentifier, escapeSqlValue, formatInsertStatement } from "./mysql-dumper";
+import { escapeIdentifier, escapeSqlValue, formatInsertStatement } from "./mysql-backup";
 
-describe("MySQL Dumper Helpers", () => {
+describe("MySQL Backup Helpers", () => {
   describe("escapeIdentifier", () => {
     it("wraps identifiers in backticks", () => {
       assert.equal(escapeIdentifier("users"), "`users`");
@@ -34,9 +34,10 @@ describe("MySQL Dumper Helpers", () => {
       assert.equal(escapeSqlValue("path\\to\\file"), "'path\\\\to\\\\file'");
     });
 
-    it("handles Date objects", () => {
-      const d = new Date("2026-09-05T12:00:00.000Z");
-      assert.ok(escapeSqlValue(d).startsWith("'2026-09-05"));
+    it("formats Date using local calendar to prevent timezone offset corruption", () => {
+      const d = new Date(2026, 8, 5, 12, 30, 0, 0); // Sep 5 2026 12:30:00 local time
+      const escaped = escapeSqlValue(d);
+      assert.ok(escaped.startsWith("'2026-09-05 12:30:00"));
     });
 
     it("handles Buffer / binary data", () => {

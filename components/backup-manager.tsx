@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { formatBytes } from "@/lib/format";
 
 export interface BackupItem {
   id: string;
@@ -11,20 +12,6 @@ export interface BackupItem {
   s3Key: string;
   sizeBytes: number;
   createdAt: string;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes <= 0 || isNaN(bytes)) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const unitIndex = Math.min(i, units.length - 1);
-
-  if (unitIndex === 0) {
-    return `${bytes} B`;
-  }
-
-  const value = bytes / Math.pow(1024, unitIndex);
-  return `${value.toFixed(1)} ${units[unitIndex]}`;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -225,7 +212,7 @@ export function BackupManager({ onBackupsCountChange }: BackupManagerProps) {
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-zinc-500">
-                Compressed SQL dumps (.sql.gz) stored in S3-compatible object storage.
+                Compressed database backups (.sql.gz) stored in S3-compatible object storage.
               </p>
             </div>
           </div>
