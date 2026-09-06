@@ -10,6 +10,7 @@ export default function Home() {
 
   const [activeTab, setActiveTab] = useState<"explorer" | "backups">("explorer");
   const [backupsCount, setBackupsCount] = useState<number | null>(null);
+  const [backupsRevision, setBackupsRevision] = useState(0);
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [name, setName] = useState("");
@@ -296,13 +297,20 @@ export default function Home() {
             <DatabaseExplorer
               onBackupCreated={() => {
                 setBackupsCount((prev) => (prev !== null ? prev + 1 : 1));
+                setBackupsRevision((prev) => prev + 1);
               }}
             />
           </div>
 
-          {activeTab === "backups" && (
-            <BackupManager onBackupsCountChange={setBackupsCount} />
-          )}
+          <div className={activeTab === "backups" ? "block" : "hidden"}>
+            <BackupManager
+              refreshTrigger={backupsRevision}
+              onBackupDeleted={() => {
+                setBackupsCount((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
+              }}
+              onBackupsLoaded={setBackupsCount}
+            />
+          </div>
         </main>
       </div>
     );

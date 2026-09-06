@@ -40,10 +40,16 @@ function formatRelativeTime(dateString: string): string {
 }
 
 interface BackupManagerProps {
-  onBackupsCountChange?: (count: number) => void;
+  onBackupDeleted?: () => void;
+  onBackupsLoaded?: (count: number) => void;
+  refreshTrigger?: number;
 }
 
-export function BackupManager({ onBackupsCountChange }: BackupManagerProps) {
+export function BackupManager({
+  onBackupDeleted,
+  onBackupsLoaded,
+  refreshTrigger,
+}: BackupManagerProps) {
   const [backups, setBackups] = useState<BackupItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +71,7 @@ export function BackupManager({ onBackupsCountChange }: BackupManagerProps) {
       }
       const list: BackupItem[] = data.backups || [];
       setBackups(list);
-      onBackupsCountChange?.(list.length);
+      onBackupsLoaded?.(list.length);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Failed to load database backups.";
@@ -73,7 +79,7 @@ export function BackupManager({ onBackupsCountChange }: BackupManagerProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [onBackupsCountChange]);
+  }, [onBackupsLoaded]);
 
   useEffect(() => {
     let ignore = false;
@@ -89,7 +95,7 @@ export function BackupManager({ onBackupsCountChange }: BackupManagerProps) {
             const list: BackupItem[] = data.backups || [];
             setBackups(list);
             setError(null);
-            onBackupsCountChange?.(list.length);
+            onBackupsLoaded?.(list.length);
           }
         }
       } catch (err: unknown) {
@@ -110,7 +116,7 @@ export function BackupManager({ onBackupsCountChange }: BackupManagerProps) {
     return () => {
       ignore = true;
     };
-  }, [onBackupsCountChange]);
+  }, [refreshTrigger, onBackupsLoaded]);
 
   const handleDownload = async (backup: BackupItem) => {
     setDownloadingId(backup.id);
@@ -154,13 +160,10 @@ export function BackupManager({ onBackupsCountChange }: BackupManagerProps) {
         throw new Error(data.error || "Failed to delete backup.");
       }
 
-      setBackups((prev) => {
-        const next = prev.filter((b) => b.id !== id);
-        onBackupsCountChange?.(next.length);
-        return next;
-      });
+      setBackups((prev) => prev.filter((b) => b.id !== id));
+      onBackupDeleted?.();
       setConfirmDeleteId(null);
-      setActionSuccess("Backup deleted successfully.");
+      setActionSuccess("Database backup deleted successfully.");
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err: unknown) {
       const message =
