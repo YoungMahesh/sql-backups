@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import type { BackupManifest } from "@/lib/manifest";
 import { formatRowCount } from "@/lib/format";
 
@@ -22,6 +22,13 @@ export type PanelState<T> =
   | { kind: "loaded"; data: T }
   | { kind: "error"; message: string };
 
+export type RawViewState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "guardrail"; sizeBytes: number }
+  | { kind: "loaded"; sql: string }
+  | { kind: "error"; message: string };
+
 export interface TableInspectState {
   expanded: boolean;
   schema: PanelState<string>;
@@ -41,6 +48,8 @@ interface InspectDrawerProps {
   onClose: () => void;
   onFetchSchema: (backupId: string, table: string) => Promise<PanelState<string>>;
   onFetchRows: (backupId: string, table: string) => Promise<PanelState<Record<string, unknown>[]>>;
+  onFetchRaw: (backupId: string) => Promise<RawViewState>;
+  onDownload: () => void;
 }
 
 export function InspectDrawer({
@@ -50,10 +59,28 @@ export function InspectDrawer({
   onClose,
   onFetchSchema,
   onFetchRows,
+  onFetchRaw,
+  onDownload,
 }: InspectDrawerProps) {
   const open = backup !== null;
 
+  const [activeTab, setActiveTab] = useState<"tables" | "raw">("tables");
   const [tableState, setTableState] = useState<Record<string, TableInspectState>>({});
+  const [rawState, setRawState] = useState<RawViewState>({ kind: "idle" });
+
+  const handleLoadRaw = useCallback(async () => {
+    if (!backup) return;
+    setRawState({ kind: "loading" });
+    const res = await onFetchRaw(backup.id);
+    setRawState(res);
+  }, [backup, onFetchRaw]);
+
+  const handleSelectRawTab = () => {
+    setActiveTab("raw");
+    if (rawState.kind === "idle") {
+      void handleLoadRaw();
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -202,23 +229,49 @@ export function InspectDrawer({
           <button
             type="button"
             role="tab"
-            aria-selected="true"
-            className="border-b-2 border-zinc-900 pb-2 pt-3 text-xs font-semibold text-zinc-900"
+            aria-selected={activeTab === "tables"}
+            onClick={() => setActiveTab("tables")}
+            className={`border-b-2 pb-2 pt-3 text-xs font-semibold transition ${
+              activeTab === "tables"
+                ? "border-zinc-900 text-zinc-900"
+                : "border-transparent text-zinc-500 hover:text-zinc-700"
+            }`}
           >
             Tables
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "raw"}
+            onClick={handleSelectRawTab}
+            className={`ml-4 border-b-2 pb-2 pt-3 text-xs font-semibold transition ${
+              activeTab === "raw"
+                ? "border-zinc-900 text-zinc-900"
+                : "border-transparent text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            Raw
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-          <TablesTab
-            state={manifestState}
-            onRetry={onRetry}
-            ensureTableState={ensureTableState}
-            onToggleTable={handleToggleTable}
-            onShowData={handleShowData}
-            onRetrySchema={handleRetrySchema}
-            onRetryRows={handleRetryRows}
-          />
+          {activeTab === "tables" ? (
+            <TablesTab
+              state={manifestState}
+              onRetry={onRetry}
+              ensureTableState={ensureTableState}
+              onToggleTable={handleToggleTable}
+              onShowData={handleShowData}
+              onRetrySchema={handleRetrySchema}
+              onRetryRows={handleRetryRows}
+            />
+          ) : (
+            <RawTab
+              state={rawState}
+              onRetry={handleLoadRaw}
+              onDownload={onDownload}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -512,6 +565,162 @@ function PanelError({ message, onRetry, compact }: PanelErrorProps) {
       >
         Retry
       </button>
+    </div>
+  );
+}
+
+interface RawTabProps {
+  state: RawViewState;
+  onRetry: () => void;
+  onDownload: () => void;
+}
+
+function RawTab({ state, onRetry, onDownload }: RawTabProps) {
+  const [copied, setCopied] = useState(false);
+
+  const lineCount =
+    state.kind === "loaded" ? (state.sql.match(/\n/g)?.length ?? 0) + 1 : 0;
+  const gutter = useMemo(() => {
+    if (state.kind !== "loaded") return "";
+    const nums: string[] = [];
+    for (let i = 1; i <= lineCount; i++) {
+      nums.push(String(i));
+    }
+    return nums.join("\n");
+  }, [state.kind, lineCount]);
+
+  if (state.kind === "loading" || state.kind === "idle") {
+    return (
+      <div className="flex items-center justify-center gap-2 py-12 text-xs text-zinc-500">
+        <Spinner />
+        <span>Loading raw SQL...</span>
+      </div>
+    );
+  }
+
+  if (state.kind === "error") {
+    return <PanelError message={state.message} onRetry={onRetry} />;
+  }
+
+  if (state.kind === "guardrail") {
+    const sizeMb = Math.round(state.sizeBytes / (1024 * 1024));
+    return (
+      <div className="rounded-xl border border-dashed border-zinc-200 py-12 text-center">
+        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-400">
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+        </div>
+        <p className="mt-3 text-sm font-semibold text-zinc-800">
+          Download to view — file is {sizeMb} MB
+        </p>
+        <p className="mx-auto mt-1 max-w-sm text-xs text-zinc-500">
+          This backup exceeds the 50 MB in-browser viewing limit. Download the
+          file to view its full contents.
+        </p>
+        <button
+          type="button"
+          onClick={onDownload}
+          className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
+        >
+          <svg
+            className="h-3.5 w-3.5 text-zinc-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth="2"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+          <span>Download</span>
+        </button>
+      </div>
+    );
+  }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(state.sql);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy raw SQL:", err);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
+        >
+          {copied ? (
+            <>
+              <svg
+                className="h-3.5 w-3.5 text-emerald-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              <span className="text-emerald-700">Copied!</span>
+            </>
+          ) : (
+            <>
+              <svg
+                className="h-3.5 w-3.5 text-zinc-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
+              </svg>
+              <span>Copy to clipboard</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      <pre className="max-h-[calc(100vh-220px)] overflow-auto rounded-md border border-zinc-200 bg-zinc-50/60 p-3 font-mono text-[11px] leading-relaxed text-zinc-800">
+        <div className="flex min-w-full">
+          <span
+            className="select-none pr-4 text-right text-zinc-400 font-mono"
+            aria-hidden="true"
+          >
+            {gutter}
+          </span>
+          <code className="whitespace-pre overflow-x-auto flex-1 font-mono">
+            {state.sql}
+          </code>
+        </div>
+      </pre>
     </div>
   );
 }

@@ -134,6 +134,22 @@ export async function getBackupDownloadUrl(
 }
 
 /**
+ * Generates a pre-signed S3 URL valid for 15 minutes (900 seconds) without
+ * ResponseContentDisposition, allowing programmatic browser fetching of the dump.
+ */
+export async function getBackupRawUrl(key: string): Promise<string> {
+  const client = getS3Client();
+  const { bucketName } = getS3Config();
+
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+  });
+
+  return await getSignedUrl(client, command, { expiresIn: 900 });
+}
+
+/**
  * Deletes an object from S3 storage.
  */
 export async function deleteBackupObject(key: string): Promise<void> {

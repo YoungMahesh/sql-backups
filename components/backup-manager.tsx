@@ -6,6 +6,7 @@ import {
   InspectDrawer,
   type ManifestViewState,
   type PanelState,
+  type RawViewState,
 } from "@/components/inspect-drawer";
 
 export interface BackupItem {
@@ -305,6 +306,49 @@ export function BackupManager({
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Could not load table rows.";
+        return { kind: "error", message };
+      }
+    },
+    []
+  );
+
+  const fetchRawFor = useCallback(
+    async (backupId: string): Promise<RawViewState> => {
+      try {
+        const res = await fetch(`/api/mysql/backups/${backupId}/raw-url`);
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to fetch raw backup URL.");
+        }
+        const data = await res.json();
+        if (!data.allowed) {
+          return { kind: "guardrail", sizeBytes: data.sizeBytes ?? 0 };
+        }
+
+        const dumpRes = await fetch(data.url);
+        if (!dumpRes.ok) {
+          throw new Error(`Failed to fetch backup file: ${dumpRes.statusText}`);
+        }
+        if (!dumpRes.body) {
+          throw new Error("Backup response body is empty.");
+        }
+
+        const decompressedStream = dumpRes.body
+          .pipeThrough(new DecompressionStream("gzip"))
+          .pipeThrough(new TextDecoderStream());
+
+        const reader = decompressedStream.getReader();
+        let sql = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          sql += value;
+        }
+
+        return { kind: "loaded", sql };
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to load raw SQL.";
         return { kind: "error", message };
       }
     },
@@ -757,6 +801,12 @@ export function BackupManager({
         onClose={() => setInspectSession(null)}
         onFetchSchema={fetchSchemaFor}
         onFetchRows={fetchRowsFor}
+        onFetchRaw={fetchRawFor}
+        onDownload={() => {
+          if (openInspectSession) {
+            void handleDownload(openInspectSession.backup);
+          }
+        }}
       />
     </div>
   );
