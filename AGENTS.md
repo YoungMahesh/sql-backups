@@ -1,17 +1,18 @@
 # Instructions
 
 - Present a complete implementation plan and wait for explicit user approval before creating or modifying any files. Read-only codebase exploration to prepare the plan is permitted.
-- Instead of npm use pnpm 
-- Instead of `pnpm build` use `pnpm run lint && pnpm run typecheck`
-- If you make any changes to database schema, generate database migration with `pnpm run db-generate`, but do not run`pnpm run db-migrate` as i will do migration myself.
-- If you think this nextjs version APIs, conventions, file structure, etc differ from your training data, read the relevant guide in `node_modules/next/dist/docs/` before writing the code.
-- To know which env variables available to you, read `.env.example`
+- Use `pnpm` instead of `npm`.
+- Use `pnpm run lint && pnpm run typecheck` instead of `pnpm build`.
+- If you make any changes to the database schema, generate a database migration with `pnpm run db-generate` and apply it with `pnpm run db-migrate`.
+- If you think this Next.js version's APIs, conventions, or file structure differ from your training data, read the relevant guide in `node_modules/next/dist/docs/` before writing code.
+- Refer to `.env.example` to see which environment variables are available.
+- When implementing a ticket, include the ticket status update in the same commit: update its `Status:` line to `done` (or the appropriate state) and check off all completed acceptance criteria (`- [ ]` to `- [x]`). A ticket is only `done` when every acceptance criterion is met. Do NOT split this into a separate docs-only commit.
 
 # Tech stack
 
 - Authentication: [better-auth](https://better-auth.com/docs/basic-usage)
 - Database: MySQL with [drizzle-orm](https://orm.drizzle.team/docs/overview)
-- Object Storage: [Seafsweed](https://github.com/seaweedfs/seaweedfs) (S3-compatible storage)
+- Object Storage: [SeaweedFS](https://github.com/seaweedfs/seaweedfs) (S3-compatible storage)
 
 ## Agent skills
 
