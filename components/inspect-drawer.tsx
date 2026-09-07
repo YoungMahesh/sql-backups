@@ -17,6 +17,7 @@ export type ManifestViewState =
   | { kind: "loaded"; manifest: BackupManifest };
 
 export type PanelState<T> =
+  | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "loaded"; data: T }
   | { kind: "error"; message: string };
@@ -30,7 +31,7 @@ export interface TableInspectState {
 const DEFAULT_TABLE_INSPECT_STATE: TableInspectState = {
   expanded: false,
   schema: { kind: "loading" },
-  rows: { kind: "loading" },
+  rows: { kind: "idle" },
 };
 
 interface InspectDrawerProps {
@@ -354,7 +355,7 @@ interface SchemaPanelProps {
 }
 
 function SchemaPanel({ state, onRetry }: SchemaPanelProps) {
-  if (state.kind === "loading") {
+  if (state.kind === "loading" || state.kind === "idle") {
     return (
       <div className="flex items-center gap-2 py-3 text-[11px] text-zinc-500">
         <Spinner />
@@ -379,6 +380,17 @@ interface RowsPanelProps {
 }
 
 function RowsPanel({ state, onShowData, onRetry }: RowsPanelProps) {
+  if (state.kind === "idle") {
+    return (
+      <button
+        type="button"
+        onClick={onShowData}
+        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
+      >
+        Show data
+      </button>
+    );
+  }
   if (state.kind === "loading") {
     return (
       <div className="mt-3 flex items-center gap-2 py-2 text-[11px] text-zinc-500">
@@ -401,18 +413,7 @@ function RowsPanel({ state, onShowData, onRetry }: RowsPanelProps) {
       </p>
     );
   }
-  return (
-    <>
-      <button
-        type="button"
-        onClick={onShowData}
-        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
-      >
-        Show data
-      </button>
-      <RowsTable rows={state.data} />
-    </>
-  );
+  return <RowsTable rows={state.data} />;
 }
 
 function RowsTable({ rows }: { rows: Record<string, unknown>[] }) {
@@ -449,6 +450,17 @@ function RowsTable({ rows }: { rows: Record<string, unknown>[] }) {
   );
 }
 
+function isBufferObject(
+  val: unknown
+): val is { type: "Buffer"; data: number[] } {
+  return (
+    typeof val === "object" &&
+    val !== null &&
+    (val as { type?: unknown }).type === "Buffer" &&
+    Array.isArray((val as { data?: unknown }).data)
+  );
+}
+
 function renderCell(value: unknown) {
   if (value === null || value === undefined) {
     return <span className="italic text-zinc-400">NULL</span>;
@@ -462,7 +474,11 @@ function renderCell(value: unknown) {
   if (typeof value === "string") {
     return <span className="whitespace-pre-wrap break-words">{value}</span>;
   }
-  if (Buffer.isBuffer(value)) {
+  if (isBufferObject(value)) {
+    const hex = value.data.map((b) => b.toString(16).padStart(2, "0")).join("");
+    return <span className="font-mono text-zinc-700">0x{hex}</span>;
+  }
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer?.(value)) {
     return <span className="font-mono text-zinc-700">0x{value.toString("hex")}</span>;
   }
   if (typeof value === "object") {
