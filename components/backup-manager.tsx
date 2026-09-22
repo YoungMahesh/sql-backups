@@ -15,9 +15,14 @@ export interface BackupItem {
   databaseName: string;
   host: string;
   port: number;
+  engine?: "mysql" | "postgres";
   s3Key: string;
   sizeBytes: number;
   createdAt: string;
+}
+
+export function getBackupApiPrefix(engine?: string): string {
+  return engine === "postgres" ? "/api/postgres/backups" : "/api/mysql/backups";
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -137,7 +142,8 @@ export function BackupManager({
     setDownloadingId(backup.id);
     setError(null);
     try {
-      const res = await fetch(`/api/mysql/backups/${backup.id}/download`);
+      const prefix = getBackupApiPrefix(backup.engine);
+      const res = await fetch(`${prefix}/${backup.id}/download`);
       const data = await res.json();
 
       if (!res.ok) {
@@ -162,11 +168,12 @@ export function BackupManager({
     }
   };
 
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
+  const handleDelete = async (backup: BackupItem) => {
+    setDeletingId(backup.id);
     setError(null);
     try {
-      const res = await fetch(`/api/mysql/backups/${id}`, {
+      const prefix = getBackupApiPrefix(backup.engine);
+      const res = await fetch(`${prefix}/${backup.id}`, {
         method: "DELETE",
       });
 
@@ -175,7 +182,7 @@ export function BackupManager({
         throw new Error(data.error || "Failed to delete backup.");
       }
 
-      setBackups((prev) => prev.filter((b) => b.id !== id));
+      setBackups((prev) => prev.filter((b) => b.id !== backup.id));
       onBackupDeleted?.();
       setConfirmDeleteId(null);
       setActionSuccess("Database backup deleted successfully.");
@@ -192,7 +199,8 @@ export function BackupManager({
   const fetchManifestFor = useCallback(
     async (backup: BackupItem): Promise<ManifestViewState> => {
       try {
-        const res = await fetch(`/api/mysql/backups/${backup.id}/manifest`);
+        const prefix = getBackupApiPrefix(backup.engine);
+        const res = await fetch(`${prefix}/${backup.id}/manifest`);
         if (res.status === 404) {
           setInspectAvailability((prev) => ({
             ...prev,
@@ -258,8 +266,9 @@ export function BackupManager({
       table: string
     ): Promise<PanelState<string>> => {
       try {
+        const prefix = getBackupApiPrefix(inspectSession?.backup?.engine);
         const res = await fetch(
-          `/api/mysql/backups/${backupId}/tables/${encodeURIComponent(table)}/schema`
+          `${prefix}/${backupId}/tables/${encodeURIComponent(table)}/schema`
         );
         if (res.status === 404) {
           return { kind: "error", message: "Schema not found for this table." };
@@ -279,7 +288,7 @@ export function BackupManager({
         return { kind: "error", message };
       }
     },
-    []
+    [inspectSession]
   );
 
   const fetchRowsFor = useCallback(
@@ -288,8 +297,9 @@ export function BackupManager({
       table: string
     ): Promise<PanelState<Record<string, unknown>[]>> => {
       try {
+        const prefix = getBackupApiPrefix(inspectSession?.backup?.engine);
         const res = await fetch(
-          `/api/mysql/backups/${backupId}/tables/${encodeURIComponent(table)}/rows`
+          `${prefix}/${backupId}/tables/${encodeURIComponent(table)}/rows`
         );
         if (res.status === 404) {
           return { kind: "error", message: "Table not found in backup." };
@@ -309,13 +319,14 @@ export function BackupManager({
         return { kind: "error", message };
       }
     },
-    []
+    [inspectSession]
   );
 
   const fetchRawFor = useCallback(
     async (backupId: string): Promise<RawViewState> => {
       try {
-        const res = await fetch(`/api/mysql/backups/${backupId}/raw-url`);
+        const prefix = getBackupApiPrefix(inspectSession?.backup?.engine);
+        const res = await fetch(`${prefix}/${backupId}/raw-url`);
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "Failed to fetch raw backup URL.");
@@ -352,7 +363,7 @@ export function BackupManager({
         return { kind: "error", message };
       }
     },
-    []
+    [inspectSession]
   );
 
   const handleInspectRetry = useCallback(() => {
@@ -566,7 +577,7 @@ export function BackupManager({
                 No database backups yet
               </p>
               <p className="mt-1 text-xs text-muted max-w-sm mx-auto">
-                Connect to any MySQL server in the Database Explorer tab and click the{" "}
+                Connect to any MySQL or PostgreSQL server in the Database Explorer tab and click the{" "}
                 <span className="font-semibold text-body">Backup</span> button next to any database to create an instant S3 backup.
               </p>
             </div>
@@ -591,6 +602,15 @@ export function BackupManager({
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <span className="font-mono font-bold text-sm text-ink">
                           {backup.databaseName}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
+                            backup.engine === "postgres"
+                              ? "border-hairline bg-surface-cream-strong text-body-strong"
+                              : "border-hairline bg-surface-soft text-body"
+                          }`}
+                        >
+                          {backup.engine === "postgres" ? "PostgreSQL" : "MySQL"}
                         </span>
                         <span className="inline-flex items-center rounded-md border border-hairline bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-body">
                           {backup.host}:{backup.port}
@@ -623,7 +643,7 @@ export function BackupManager({
                           </span>
                           <button
                             type="button"
-                            onClick={() => handleDelete(backup.id)}
+                            onClick={() => handleDelete(backup)}
                             disabled={isDeleting}
                             className="rounded bg-error px-2.5 py-1 text-xs font-semibold text-white shadow-2xs transition hover:opacity-90 disabled:opacity-50"
                           >

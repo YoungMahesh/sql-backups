@@ -447,7 +447,11 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
     setBackupError(null);
 
     try {
-      const res = await fetch("/api/mysql/backups", {
+      const endpoint =
+        activeConnection.engine === "postgres"
+          ? "/api/postgres/backups"
+          : "/api/mysql/backups";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

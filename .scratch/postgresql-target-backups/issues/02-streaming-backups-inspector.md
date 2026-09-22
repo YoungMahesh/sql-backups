@@ -5,14 +5,14 @@ Enable on-demand database backups and content inspection for PostgreSQL Target D
 
 **Blocked by:** 01: Schema Foundation, PostgreSQL Connection Management & Database Explorer
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Users can trigger an on-demand Database Backup of any PostgreSQL User Database from the dashboard.
-- [ ] An in-process streaming backup exporter connects via the project's PostgreSQL driver, reconstructs table DDL using catalog functions, and serializes table data into batched `INSERT` statements with proper literal escaping.
-- [ ] The backup stream pipes through gzip directly into S3-compatible storage with backpressure handling, tracking uncompressed bytes and table row counts during streaming.
-- [ ] A sibling Backup Manifest (`.manifest.json`) is uploaded alongside the dump object in S3, capturing table names and row counts.
-- [ ] All user schemas in the PostgreSQL database are captured, with tables identified using schema qualification (`schema.table`).
-- [ ] The completed backup is registered in the Application Database and displayed in the dashboard backup list with a download action.
-- [ ] The backup parser is updated to support PostgreSQL double-quoted identifiers and DDL syntax.
-- [ ] Users can open the side drawer inspector on a PostgreSQL backup to view the table manifest, view individual table DDL, preview the first 100 rows of a table, and view raw SQL up to 50 MB.
-- [ ] Unit tests verify PostgreSQL DDL generation, row serialization, stream compression, manifest calculation, and parser extraction.
+- [x] Users can trigger an on-demand Database Backup of any PostgreSQL User Database from the dashboard.
+- [x] An in-process streaming backup exporter connects via the project's PostgreSQL driver, reconstructs table DDL using catalog functions, and serializes table data into batched `INSERT` statements with proper literal escaping.
+- [x] The backup stream pipes through gzip directly into S3-compatible storage with backpressure handling, tracking uncompressed bytes and table row counts during streaming.
+- [x] A sibling Backup Manifest (`.manifest.json`) is uploaded alongside the dump object in S3, capturing table names and row counts.
+- [x] All user schemas in the PostgreSQL database are captured, with tables identified using schema qualification (`schema.table`).
+- [x] The completed backup is registered in the Application Database and displayed in the dashboard backup list with a download action.
+- [x] The backup parser is updated to support PostgreSQL double-quoted identifiers and DDL syntax.
+- [x] Users can open the side drawer inspector on a PostgreSQL backup to view the table manifest, view individual table DDL, preview the first 100 rows of a table, and view raw SQL up to 50 MB.
+- [x] Unit tests verify PostgreSQL DDL generation, row serialization, stream compression, manifest calculation, and parser extraction.

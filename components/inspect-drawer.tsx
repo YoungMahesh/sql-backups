@@ -9,6 +9,7 @@ export interface InspectDrawerBackup {
   databaseName: string;
   host: string;
   port: number;
+  engine?: "mysql" | "postgres";
 }
 
 export type ManifestViewState =
@@ -191,9 +192,22 @@ export function InspectDrawer({
               </svg>
             </button>
             <div className="min-w-0">
-              <h2 className="truncate font-serif text-lg font-medium tracking-tight text-ink sm:text-xl">
-                {backup.databaseName}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="truncate font-serif text-lg font-medium tracking-tight text-ink sm:text-xl">
+                  {backup.databaseName}
+                </h2>
+                {backup.engine && (
+                  <span
+                    className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${
+                      backup.engine === "postgres"
+                        ? "border-hairline bg-surface-cream-strong text-body-strong"
+                        : "border-hairline bg-surface-soft text-body"
+                    }`}
+                  >
+                    {backup.engine === "postgres" ? "PostgreSQL" : "MySQL"}
+                  </span>
+                )}
+              </div>
               <p className="truncate font-mono text-[11px] text-muted">
                 {backup.host}:{backup.port}
               </p>

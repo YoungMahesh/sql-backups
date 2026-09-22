@@ -384,4 +384,198 @@ describe("backup parser", () => {
       assert.ok(outcome === null || typeof outcome === "string");
     });
   });
+
+  describe("PostgreSQL dialect support", () => {
+    function buildPostgresDumpText(
+      tables: {
+        schema: string;
+        name: string;
+        createSql: string;
+        columns: string[];
+        rows: Record<string, unknown>[];
+      }[],
+      opts?: { views?: { schema: string; name: string }[] }
+    ): string {
+      const parts: string[] = [];
+      parts.push(`-- ------------------------------------------------------`);
+      parts.push(`-- PostgreSQL Database Backup created by SQL Backups`);
+      parts.push(`-- Database: "prod_db"`);
+      parts.push(`-- Backup Date: 2026-09-22T12:00:00.000Z`);
+      parts.push(`-- ------------------------------------------------------`);
+      parts.push(``);
+      parts.push(`SET client_encoding = 'UTF8';`);
+      parts.push(`SET standard_conforming_strings = on;`);
+      parts.push(``);
+
+      for (const t of tables) {
+        const qualified = `"${t.schema}"."${t.name}"`;
+        parts.push(`--`);
+        parts.push(`-- Table structure for table ${qualified}`);
+        parts.push(`--`);
+        parts.push(`DROP TABLE IF EXISTS ${qualified} CASCADE;`);
+        parts.push(`${t.createSql};`);
+        parts.push(``);
+        parts.push(`--`);
+        parts.push(`-- Dumping data for table ${qualified}`);
+        parts.push(`--`);
+        if (t.rows.length > 0) {
+          const cols = t.columns.map((c) => `"${c}"`).join(", ");
+          const vals = t.rows.map((r) => {
+            const rowVals = t.columns.map((c) => {
+              const val = r[c];
+              if (val === null) return "NULL";
+              if (typeof val === "boolean") return val ? "TRUE" : "FALSE";
+              if (typeof val === "number") return String(val);
+              if (Buffer.isBuffer(val)) return `'\\x${val.toString("hex")}'`;
+              if (typeof val === "object") return `'${JSON.stringify(val).replace(/'/g, "''")}'`;
+              return `'${String(val).replace(/'/g, "''")}'`;
+            });
+            return `(${rowVals.join(", ")})`;
+          });
+          parts.push(`INSERT INTO ${qualified} (${cols}) VALUES ${vals.join(", ")};`);
+        }
+        parts.push(``);
+      }
+
+      if (opts?.views) {
+        for (const v of opts.views) {
+          const qualified = `"${v.schema}"."${v.name}"`;
+          parts.push(`--`);
+          parts.push(`-- View structure for ${qualified}`);
+          parts.push(`--`);
+          parts.push(`DROP VIEW IF EXISTS ${qualified} CASCADE;`);
+          parts.push(`CREATE VIEW ${qualified} AS SELECT 1;`);
+          parts.push(``);
+        }
+      }
+
+      parts.push(`-- Backup completed on 2026-09-22T12:00:01.000Z`);
+      return parts.join("\n");
+    }
+
+    it("extracts schema for PostgreSQL table with schema qualification", async () => {
+      const sql = buildPostgresDumpText([
+        {
+          schema: "public",
+          name: "users",
+          createSql: `CREATE TABLE "public"."users" (\n  "id" bigint GENERATED ALWAYS AS IDENTITY NOT NULL,\n  "username" character varying(64) NOT NULL,\n  CONSTRAINT "users_pkey" PRIMARY KEY (id)\n)`,
+          columns: ["id", "username"],
+          rows: [],
+        },
+      ]);
+      const stream1 = await streamDump(sql);
+      const schema1 = await extractTableSchema(stream1, "public.users");
+      assert.equal(
+        schema1,
+        `CREATE TABLE "public"."users" (\n  "id" bigint GENERATED ALWAYS AS IDENTITY NOT NULL,\n  "username" character varying(64) NOT NULL,\n  CONSTRAINT "users_pkey" PRIMARY KEY (id)\n)`
+      );
+
+      // Also matches when searched by unqualified name "users"
+      const stream2 = await streamDump(sql);
+      const schema2 = await extractTableSchema(stream2, "users");
+      assert.equal(schema2, schema1);
+    });
+
+    it("extracts schema for custom schema table", async () => {
+      const sql = buildPostgresDumpText([
+        {
+          schema: "public",
+          name: "users",
+          createSql: `CREATE TABLE "public"."users" ("id" int)`,
+          columns: ["id"],
+          rows: [],
+        },
+        {
+          schema: "analytics",
+          name: "events",
+          createSql: `CREATE TABLE "analytics"."events" (\n  "event_id" uuid NOT NULL,\n  "payload" jsonb\n)`,
+          columns: ["event_id", "payload"],
+          rows: [],
+        },
+      ]);
+      const stream = await streamDump(sql);
+      const schema = await extractTableSchema(stream, "analytics.events");
+      assert.equal(
+        schema,
+        `CREATE TABLE "analytics"."events" (\n  "event_id" uuid NOT NULL,\n  "payload" jsonb\n)`
+      );
+    });
+
+    it("extracts rows with booleans, bytea, JSONB, and escaped single quotes", async () => {
+      const sql = buildPostgresDumpText([
+        {
+          schema: "public",
+          name: "accounts",
+          createSql: `CREATE TABLE "public"."accounts" ("id" int, "title" text, "is_active" boolean, "meta" jsonb, "avatar" bytea)`,
+          columns: ["id", "title", "is_active", "meta", "avatar"],
+          rows: [
+            {
+              id: 1,
+              title: "O'Reilly's Pub",
+              is_active: true,
+              meta: { tier: "gold", tags: ["vip", "early"] },
+              avatar: Buffer.from("hello"),
+            },
+            {
+              id: 2,
+              title: "Normal Store",
+              is_active: false,
+              meta: { tier: "free" },
+              avatar: null,
+            },
+          ],
+        },
+      ]);
+
+      const stream = await streamDump(sql);
+      const rows = await extractTableRows(stream, "public.accounts", 10);
+      assert.ok(rows);
+      assert.equal(rows.length, 2);
+
+      assert.equal(rows[0].id, 1);
+      assert.equal(rows[0].title, "O'Reilly's Pub");
+      assert.equal(rows[0].is_active, true);
+      assert.deepEqual(rows[0].meta, { tier: "gold", tags: ["vip", "early"] });
+      assert.ok(Buffer.isBuffer(rows[0].avatar));
+      assert.equal((rows[0].avatar as Buffer).toString("utf8"), "hello");
+
+      assert.equal(rows[1].id, 2);
+      assert.equal(rows[1].title, "Normal Store");
+      assert.equal(rows[1].is_active, false);
+      assert.equal(rows[1].avatar, null);
+    });
+
+    it("caps rows at the requested limit for PostgreSQL tables", async () => {
+      const sql = buildPostgresDumpText([
+        {
+          schema: "public",
+          name: "items",
+          createSql: `CREATE TABLE "public"."items" ("id" int)`,
+          columns: ["id"],
+          rows: Array.from({ length: 50 }, (_, i) => ({ id: i + 1 })),
+        },
+      ]);
+      const stream = await streamDump(sql);
+      const rows = await extractTableRows(stream, "public.items", 5);
+      assert.equal(rows?.length, 5);
+    });
+
+    it("skips PostgreSQL views without error", async () => {
+      const sql = buildPostgresDumpText(
+        [
+          {
+            schema: "public",
+            name: "users",
+            createSql: `CREATE TABLE "public"."users" ("id" int)`,
+            columns: ["id"],
+            rows: [{ id: 100 }],
+          },
+        ],
+        { views: [{ schema: "public", name: "active_users" }] }
+      );
+      const stream = await streamDump(sql);
+      const rows = await extractTableRows(stream, "public.users", 10);
+      assert.deepEqual(rows, [{ id: 100 }]);
+    });
+  });
 });

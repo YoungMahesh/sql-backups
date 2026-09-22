@@ -54,7 +54,7 @@ export function generateTestDatabaseName(type: "template" | "suite"): string {
 }
 
 export function extractDatabaseTimestamp(name: string): number | null {
-  const match = name.match(/^db_test_.*_(\d+)(?:_[a-z0-9]+)?$/);
+  const match = name.match(/^db_test_[^_]+_(\d+)_[a-zA-Z0-9]+$/);
   if (!match) return null;
   const ts = parseInt(match[1], 10);
   return Number.isNaN(ts) ? null : ts;
