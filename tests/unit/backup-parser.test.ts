@@ -578,4 +578,105 @@ describe("backup parser", () => {
       assert.deepEqual(rows, [{ id: 100 }]);
     });
   });
+
+  describe("SQLite dump parsing parity", () => {
+    function buildSqliteDumpText(
+      tables: { name: string; createSql: string; insertSqls?: string[] }[],
+      sequence?: { name: string; seq: number }[]
+    ): string {
+      const parts: string[] = [];
+      parts.push(`-- ------------------------------------------------------`);
+      parts.push(`-- SQLite Database Backup created by SQL Backups`);
+      parts.push(`-- Database: "app_db"`);
+      parts.push(`-- Backup Date: 2026-09-22T12:00:00.000Z`);
+      parts.push(`-- ------------------------------------------------------`);
+      parts.push(``);
+      parts.push(`PRAGMA foreign_keys = OFF;`);
+      parts.push(`BEGIN TRANSACTION;`);
+      parts.push(``);
+
+      for (const t of tables) {
+        parts.push(`--`);
+        parts.push(`-- Table structure for table "${t.name}"`);
+        parts.push(`--`);
+        parts.push(`DROP TABLE IF EXISTS "${t.name}";`);
+        parts.push(`${t.createSql};`);
+        parts.push(``);
+        parts.push(`--`);
+        parts.push(`-- Dumping data for table "${t.name}"`);
+        parts.push(`--`);
+        if (t.insertSqls) {
+          for (const s of t.insertSqls) {
+            parts.push(s);
+          }
+        }
+        parts.push(``);
+      }
+
+      if (sequence && sequence.length > 0) {
+        parts.push(`--`);
+        parts.push(`-- Sequence state for autoincrement tables`);
+        parts.push(`--`);
+        parts.push(`DELETE FROM sqlite_sequence;`);
+        for (const s of sequence) {
+          parts.push(`INSERT INTO sqlite_sequence VALUES ('${s.name}', ${s.seq});`);
+        }
+        parts.push(``);
+      }
+
+      parts.push(`COMMIT;`);
+      parts.push(`PRAGMA foreign_keys = ON;`);
+      parts.push(`-- Backup completed on 2026-09-22T12:00:01.000Z`);
+      return parts.join("\n");
+    }
+
+    it("extracts schema for SQLite table verbatim", async () => {
+      const sql = buildSqliteDumpText([
+        {
+          name: "products",
+          createSql: `CREATE TABLE "products" (\n  "id" INTEGER PRIMARY KEY AUTOINCREMENT,\n  "sku" TEXT NOT NULL UNIQUE,\n  "price" REAL\n)`,
+        },
+      ]);
+
+      const stream = await streamDump(sql);
+      const schema = await extractTableSchema(stream, "products");
+      assert.equal(
+        schema,
+        `CREATE TABLE "products" (\n  "id" INTEGER PRIMARY KEY AUTOINCREMENT,\n  "sku" TEXT NOT NULL UNIQUE,\n  "price" REAL\n)`
+      );
+    });
+
+    it("extracts rows from SQLite batched INSERTs with booleans, blobs, and JSON", async () => {
+      const insertSql =
+        `INSERT INTO "customers" ("id", "name", "is_active", "avatar", "meta") VALUES ` +
+        `(1, 'O''Connor', 1, X'CAFE', '{"plan":"pro"}'), ` +
+        `(2, 'Alice Smith', 0, NULL, '{"plan":"free"}');\n`;
+
+      const sql = buildSqliteDumpText([
+        {
+          name: "customers",
+          createSql: `CREATE TABLE "customers" ("id" INT, "name" TEXT, "is_active" INT, "avatar" BLOB, "meta" TEXT)`,
+          insertSqls: [insertSql],
+        },
+      ]);
+
+      const stream = await streamDump(sql);
+      const rows = await extractTableRows(stream, "customers", 10);
+      assert.ok(rows);
+      assert.equal(rows.length, 2);
+
+      assert.equal(rows[0].id, 1);
+      assert.equal(rows[0].name, "O'Connor");
+      assert.equal(rows[0].is_active, 1);
+      assert.ok(Buffer.isBuffer(rows[0].avatar));
+      assert.deepEqual(rows[0].avatar, Buffer.from([0xca, 0xfe]));
+      assert.deepEqual(rows[0].meta, { plan: "pro" });
+
+      assert.equal(rows[1].id, 2);
+      assert.equal(rows[1].name, "Alice Smith");
+      assert.equal(rows[1].is_active, 0);
+      assert.equal(rows[1].avatar, null);
+      assert.deepEqual(rows[1].meta, { plan: "free" });
+    });
+  });
 });

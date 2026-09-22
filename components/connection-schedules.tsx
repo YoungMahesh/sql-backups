@@ -24,7 +24,11 @@ export function ConnectionSchedules({ savedConnectionId, engine }: ConnectionSch
     async function load() {
       try {
         let list: Array<InlineSchedule & { savedConnectionId: string }> = [];
-        if (engine === "postgres") {
+        if (engine === "sqlite") {
+          const res = await fetch("/api/sqlite/schedules");
+          const data = await res.json();
+          if (res.ok) list = data.schedules || [];
+        } else if (engine === "postgres") {
           const res = await fetch("/api/postgres/schedules");
           const data = await res.json();
           if (res.ok) list = data.schedules || [];
@@ -33,15 +37,21 @@ export function ConnectionSchedules({ savedConnectionId, engine }: ConnectionSch
           const data = await res.json();
           if (res.ok) list = data.schedules || [];
         } else {
-          const [mysqlRes, pgRes] = await Promise.all([
+          const [mysqlRes, pgRes, sqliteRes] = await Promise.all([
             fetch("/api/mysql/schedules"),
             fetch("/api/postgres/schedules"),
+            fetch("/api/sqlite/schedules"),
           ]);
-          const [mysqlData, pgData] = await Promise.all([
+          const [mysqlData, pgData, sqliteData] = await Promise.all([
             mysqlRes.ok ? mysqlRes.json() : { schedules: [] },
             pgRes.ok ? pgRes.json() : { schedules: [] },
+            sqliteRes.ok ? sqliteRes.json() : { schedules: [] },
           ]);
-          list = [...(mysqlData.schedules || []), ...(pgData.schedules || [])];
+          list = [
+            ...(mysqlData.schedules || []),
+            ...(pgData.schedules || []),
+            ...(sqliteData.schedules || []),
+          ];
         }
 
         if (ignore) return;

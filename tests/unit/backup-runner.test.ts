@@ -23,6 +23,17 @@ vi.mock("@/lib/postgres-backup", async (importOriginal) => {
   };
 });
 
+vi.mock("@/lib/sqlite-backup", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/sqlite-backup")>();
+  return {
+    ...actual,
+    backupSqliteDatabaseToS3: vi.fn().mockResolvedValue({
+      s3Key: "backups/user_1/sqlite_db_2026.sql.gz",
+      sizeBytes: 4096,
+    }),
+  };
+});
+
 describe("Polymorphic Backup Runner Seam", () => {
   it("delegates to MySQL backup exporter when engine is 'mysql'", async () => {
     const { backupDatabaseToS3 } = await import("@/lib/mysql-backup");
@@ -67,6 +78,39 @@ describe("Polymorphic Backup Runner Seam", () => {
       expect.objectContaining({
         databaseName: "analytics",
         userId: "user_456",
+      })
+    );
+  });
+
+  it("delegates to SQLite backup exporter when engine is 'sqlite'", async () => {
+    const { backupSqliteDatabaseToS3 } = await import("@/lib/sqlite-backup");
+
+    const mockLibsqlClient = {
+      execute: vi.fn(),
+      close: vi.fn(),
+    } as unknown as import("@libsql/client").Client;
+    const mockManifestSink = { uploadManifest: vi.fn() };
+
+    const result = await runBackup({
+      engine: "sqlite",
+      databaseName: "app_data",
+      userId: "user_789",
+      connectionOptions: {
+        uri: "libsql://app-data-org.turso.io",
+      },
+      libsqlClient: mockLibsqlClient,
+      manifestSink: mockManifestSink,
+    });
+
+    expect(result.s3Key).toBe("backups/user_1/sqlite_db_2026.sql.gz");
+    expect(result.sizeBytes).toBe(4096);
+    expect(backupSqliteDatabaseToS3).toHaveBeenCalledTimes(1);
+    expect(backupSqliteDatabaseToS3).toHaveBeenCalledWith(
+      expect.objectContaining({
+        databaseName: "app_data",
+        userId: "user_789",
+        client: mockLibsqlClient,
+        manifestSink: mockManifestSink,
       })
     );
   });

@@ -579,7 +579,9 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
 
     try {
       const endpoint =
-        activeConnection.engine === "postgres"
+        activeConnection.engine === "sqlite"
+          ? "/api/sqlite/backups"
+          : activeConnection.engine === "postgres"
           ? "/api/postgres/backups"
           : "/api/mysql/backups";
       const res = await fetch(endpoint, {

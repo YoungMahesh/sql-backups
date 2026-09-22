@@ -32,7 +32,7 @@ export interface ScheduleItem {
   connectionHost: string;
   connectionPort: number;
   connectionUsername: string;
-  connectionEngine?: "mysql" | "postgres";
+  connectionEngine?: "mysql" | "postgres" | "sqlite";
 }
 
 interface ScheduleRowProps {
@@ -60,7 +60,9 @@ export function ScheduleRow({ schedule, onEdit, onDeleted, onChanged }: Schedule
   const [error, setError] = useState<string | null>(null);
 
   const apiPrefix =
-    schedule.connectionEngine === "postgres"
+    schedule.connectionEngine === "sqlite"
+      ? "/api/sqlite/schedules"
+      : schedule.connectionEngine === "postgres"
       ? "/api/postgres/schedules"
       : "/api/mysql/schedules";
 
@@ -107,10 +109,16 @@ export function ScheduleRow({ schedule, onEdit, onDeleted, onChanged }: Schedule
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className="font-mono font-bold text-sm text-ink">{schedule.databaseName}</span>
             <span className="inline-flex items-center rounded-md border border-hairline bg-surface-cream-strong px-2 py-0.5 text-[11px] font-semibold text-body-strong">
-              {schedule.connectionEngine === "postgres" ? "PostgreSQL" : "MySQL"}
+              {schedule.connectionEngine === "sqlite"
+                ? "SQLite"
+                : schedule.connectionEngine === "postgres"
+                ? "PostgreSQL"
+                : "MySQL"}
             </span>
             <span className="inline-flex items-center rounded-md border border-hairline bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-body">
-              {schedule.connectionHost}:{schedule.connectionPort}
+              {schedule.connectionEngine === "sqlite"
+                ? schedule.connectionHost
+                : `${schedule.connectionHost}:${schedule.connectionPort}`}
             </span>
             <span className="inline-flex items-center rounded-md border border-hairline bg-surface-cream-strong px-2 py-0.5 text-[11px] font-medium text-body-strong">
               {schedule.timezone}

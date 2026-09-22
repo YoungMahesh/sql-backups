@@ -30,7 +30,7 @@ function statusBadgeClass(status: BackupRunItem["status"]): string {
 interface RunHistoryProps {
   scheduleId: string;
   open: boolean;
-  engine?: "mysql" | "postgres";
+  engine?: "mysql" | "postgres" | "sqlite";
 }
 
 export function RunHistory({ scheduleId, open, engine }: RunHistoryProps) {
@@ -45,7 +45,11 @@ export function RunHistory({ scheduleId, open, engine }: RunHistoryProps) {
       setError(null);
       try {
         const apiPrefix =
-          engine === "postgres" ? "/api/postgres/schedules" : "/api/mysql/schedules";
+          engine === "sqlite"
+            ? "/api/sqlite/schedules"
+            : engine === "postgres"
+            ? "/api/postgres/schedules"
+            : "/api/mysql/schedules";
         const res = await fetch(`${apiPrefix}/${scheduleId}/runs?limit=20`);
         const data = await res.json();
         if (ignore) return;
@@ -123,7 +127,7 @@ export function RunHistory({ scheduleId, open, engine }: RunHistoryProps) {
               )}
               {run.status === "success" && run.backupId && (
                 <a
-                  href={`/api/${engine === "postgres" ? "postgres" : "mysql"}/backups/${run.backupId}/download`}
+                  href={`/api/${engine === "sqlite" ? "sqlite" : engine === "postgres" ? "postgres" : "mysql"}/backups/${run.backupId}/download`}
                   className="text-[11px] font-medium text-primary underline hover:text-primary-active"
                   target="_blank"
                   rel="noopener noreferrer"

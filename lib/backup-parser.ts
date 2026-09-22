@@ -499,7 +499,7 @@ export function parseValuesList(input: string): string[][] {
 
 /**
  * Converts a single SQL literal into a plain JavaScript value.
- * Supports MySQL and PostgreSQL values (NULL, booleans, numeric, bytea, JSON, strings).
+ * Supports MySQL, PostgreSQL, and SQLite values (NULL, booleans, numeric, bytea, hex blobs, JSON, strings).
  */
 export function parseSqlValue(token: string): unknown {
   const trimmed = token.trim();
@@ -509,7 +509,11 @@ export function parseSqlValue(token: string): unknown {
   if (trimmed === "TRUE" || trimmed === "true") return true;
   if (trimmed === "FALSE" || trimmed === "false") return false;
 
-  if (trimmed.startsWith("X'") && trimmed.endsWith("'") && trimmed.length >= 4) {
+  if (
+    (trimmed.startsWith("X'") || trimmed.startsWith("x'")) &&
+    trimmed.endsWith("'") &&
+    trimmed.length >= 3
+  ) {
     return Buffer.from(trimmed.slice(2, -1), "hex");
   }
 

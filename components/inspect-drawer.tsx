@@ -9,7 +9,7 @@ export interface InspectDrawerBackup {
   databaseName: string;
   host: string;
   port: number;
-  engine?: "mysql" | "postgres";
+  engine?: "mysql" | "postgres" | "sqlite";
 }
 
 export type ManifestViewState =
@@ -199,17 +199,23 @@ export function InspectDrawer({
                 {backup.engine && (
                   <span
                     className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${
-                      backup.engine === "postgres"
+                      backup.engine === "sqlite"
+                        ? "border-hairline bg-surface-cream-strong text-primary"
+                        : backup.engine === "postgres"
                         ? "border-hairline bg-surface-cream-strong text-body-strong"
                         : "border-hairline bg-surface-soft text-body"
                     }`}
                   >
-                    {backup.engine === "postgres" ? "PostgreSQL" : "MySQL"}
+                    {backup.engine === "sqlite"
+                      ? "SQLite"
+                      : backup.engine === "postgres"
+                      ? "PostgreSQL"
+                      : "MySQL"}
                   </span>
                 )}
               </div>
               <p className="truncate font-mono text-[11px] text-muted">
-                {backup.host}:{backup.port}
+                {backup.engine === "sqlite" ? backup.host : `${backup.host}:${backup.port}`}
               </p>
             </div>
           </div>

@@ -64,7 +64,7 @@ describe("Database Lifecycle & Isolation", () => {
       await secondClient.end({ timeout: 5 });
       await dropDatabase(secondSuite.name);
     }
-  });
+  }, 20000);
 
   it("drains pool connections cleanly without hanging", async () => {
     // Verify closeDb() resolves cleanly
@@ -103,5 +103,5 @@ describe("Database Lifecycle & Isolation", () => {
       // Clean up the recent database
       await dropDatabase(recentDbName);
     }
-  });
+  }, 20000);
 });

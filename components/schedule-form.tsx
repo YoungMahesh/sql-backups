@@ -131,7 +131,9 @@ export function ScheduleForm({
       try {
         const selectedConn = connections.find((c) => c.id === savedConnectionId);
         const endpoint =
-          selectedConn?.engine === "postgres"
+          selectedConn?.engine === "sqlite"
+            ? `/api/sqlite/databases`
+            : selectedConn?.engine === "postgres"
             ? `/api/postgres/databases`
             : `/api/mysql/databases`;
 
@@ -174,7 +176,11 @@ export function ScheduleForm({
         ? initial?.engine || selectedConn?.engine
         : selectedConn?.engine;
       const apiPrefix =
-        targetEngine === "postgres" ? "/api/postgres/schedules" : "/api/mysql/schedules";
+        targetEngine === "sqlite"
+          ? "/api/sqlite/schedules"
+          : targetEngine === "postgres"
+          ? "/api/postgres/schedules"
+          : "/api/mysql/schedules";
 
       const body = isEdit
         ? {
@@ -274,7 +280,9 @@ export function ScheduleForm({
                   <option value="">Select a connection…</option>
                   {connections.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.host}:{c.port} ({c.username}) — {c.engine === "postgres" ? "PostgreSQL" : "MySQL"}
+                      {c.engine === "sqlite"
+                        ? `${c.host} (${c.database || "main"}) — SQLite`
+                        : `${c.host}:${c.port} (${c.username}) — ${c.engine === "postgres" ? "PostgreSQL" : "MySQL"}`}
                     </option>
                   ))}
                 </select>

@@ -34,17 +34,20 @@ export function ScheduleManager({
     setIsLoading(true);
     setError(null);
     try {
-      const [mysqlRes, pgRes] = await Promise.all([
+      const [mysqlRes, pgRes, sqliteRes] = await Promise.all([
         fetch("/api/mysql/schedules"),
         fetch("/api/postgres/schedules"),
+        fetch("/api/sqlite/schedules"),
       ]);
-      const [mysqlData, pgData] = await Promise.all([
+      const [mysqlData, pgData, sqliteData] = await Promise.all([
         mysqlRes.ok ? mysqlRes.json() : { schedules: [] },
         pgRes.ok ? pgRes.json() : { schedules: [] },
+        sqliteRes.ok ? sqliteRes.json() : { schedules: [] },
       ]);
       const list: ScheduleItem[] = [
         ...(mysqlData.schedules || []),
         ...(pgData.schedules || []),
+        ...(sqliteData.schedules || []),
       ].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
@@ -61,18 +64,21 @@ export function ScheduleManager({
     let ignore = false;
     async function load() {
       try {
-        const [mysqlRes, pgRes] = await Promise.all([
+        const [mysqlRes, pgRes, sqliteRes] = await Promise.all([
           fetch("/api/mysql/schedules"),
           fetch("/api/postgres/schedules"),
+          fetch("/api/sqlite/schedules"),
         ]);
-        const [mysqlData, pgData] = await Promise.all([
+        const [mysqlData, pgData, sqliteData] = await Promise.all([
           mysqlRes.ok ? mysqlRes.json() : { schedules: [] },
           pgRes.ok ? pgRes.json() : { schedules: [] },
+          sqliteRes.ok ? sqliteRes.json() : { schedules: [] },
         ]);
         if (!ignore) {
           const list: ScheduleItem[] = [
             ...(mysqlData.schedules || []),
             ...(pgData.schedules || []),
+            ...(sqliteData.schedules || []),
           ].sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
