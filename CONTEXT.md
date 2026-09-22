@@ -8,20 +8,24 @@ A web application to connect to, inspect, and manage SQL database instances and 
 The internal PostgreSQL database powering SQL Backups, persisting user accounts, authentication sessions, encrypted saved connections, backup schedules, and run history.
 _Avoid_: Metadata DB, Internal DB, Config DB
 
+**Database Engine**:
+The database management system type of a Target Database (`mysql` or `postgres`), determining the dialect, connection protocol, and backup extraction strategy.
+_Avoid_: Database Type, DBMS, Flavor
+
 **Target Database**:
-An external MySQL database instance connected to, inspected, and backed up via SQL Backups.
+An external database instance (MySQL or PostgreSQL) connected to, inspected, and backed up via SQL Backups.
 _Avoid_: Remote DB, External DB, Monitored DB
 
 **User Database**:
-A custom database created for application data on a MySQL server, excluding internal server schemas.
+A database created for application data on a Target Database server, excluding internal server schemas and administrative templates.
 _Avoid_: Custom DB, App DB, Schema
 
 **System Database**:
-Built-in MySQL administrative and metadata schemas (`information_schema`, `mysql`, `performance_schema`, `sys`) that are excluded from user database listing.
+Built-in administrative and metadata schemas (MySQL: `information_schema`, `mysql`, `performance_schema`, `sys`; PostgreSQL: `postgres`, `template0`, `template1`, `pg_catalog`, `information_schema`) that are excluded from user database listing.
 _Avoid_: Admin DB, Internal DB, Root DB
 
 **Saved Connection**:
-A stored MySQL connection string associated with an authenticated user account, representing a previously verified server target. Stored encrypted at rest and presented with masked credentials in the dashboard.
+A stored database connection profile and encrypted connection string associated with an authenticated user account, representing a previously verified server target. Stored encrypted at rest and presented with masked credentials in the dashboard.
 _Avoid_: Connection History, Saved DB, Server Profile
 
 **Database Backup**:
