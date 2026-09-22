@@ -131,3 +131,53 @@ test("serializeToConnectionString appends search or ssl parameters", () => {
   );
 });
 
+test("maskConnectionString masks auth token in libSQL and HTTPS URIs", () => {
+  const uriWithToken = "libsql://my-db-org.turso.io?authToken=super-secret-jwt-token-123";
+  const masked = maskConnectionString(uriWithToken);
+  assert.equal(masked, "libsql://my-db-org.turso.io?authToken=••••");
+
+  const httpsUri = "https://my-app-org.turso.io?authToken=bearer-secret-token";
+  const maskedHttps = maskConnectionString(httpsUri);
+  assert.equal(maskedHttps, "https://my-app-org.turso.io/?authToken=••••");
+});
+
+test("serializeToConnectionString creates valid libSQL URI with authToken", () => {
+  const uri = serializeToConnectionString({
+    engine: "sqlite",
+    host: "my-app-org.turso.io",
+    authToken: "secret-token-abc",
+  });
+  assert.equal(uri, "libsql://my-app-org.turso.io?authToken=secret-token-abc");
+
+  const uriWithDb = serializeToConnectionString({
+    engine: "sqlite",
+    host: "my-app-org.turso.io",
+    database: "custom-db",
+    authToken: "token-xyz",
+  });
+  assert.equal(uriWithDb, "libsql://my-app-org.turso.io/custom-db?authToken=token-xyz");
+});
+
+test("parseConnectionString parses libSQL URI and derives database name and token", () => {
+  const parsed = parseConnectionString(
+    "libsql://my-app-org.turso.io?authToken=secret-token-123"
+  );
+  assert.equal(parsed.engine, "sqlite");
+  assert.equal(parsed.host, "my-app-org.turso.io");
+  assert.equal(parsed.port, 443);
+  assert.equal(parsed.database, "my-app");
+  assert.equal(parsed.authToken, "secret-token-123");
+  assert.equal(parsed.password, "secret-token-123");
+});
+
+test("parseConnectionString parses HTTPS Turso URI with custom path database", () => {
+  const parsed = parseConnectionString(
+    "https://my-turso-cluster.turso.io/custom_db?authToken=jwt-456"
+  );
+  assert.equal(parsed.engine, "sqlite");
+  assert.equal(parsed.host, "my-turso-cluster.turso.io");
+  assert.equal(parsed.port, 443);
+  assert.equal(parsed.database, "custom_db");
+  assert.equal(parsed.authToken, "jwt-456");
+});
+

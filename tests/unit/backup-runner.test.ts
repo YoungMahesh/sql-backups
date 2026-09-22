@@ -103,7 +103,7 @@ describe("Polymorphic Backup Runner Seam", () => {
     await expect(
       runBackup({
         // @ts-expect-error test invalid engine runtime handling
-        engine: "sqlite",
+        engine: "oracle",
         databaseName: "test",
         userId: "user_123",
         connectionOptions: {},

@@ -19,7 +19,7 @@ export const databaseBackup = pgTable(
     databaseName: varchar("database_name", { length: 255 }).notNull(),
     host: varchar("host", { length: 255 }).notNull(),
     port: integer("port").default(3306).notNull(),
-    engine: varchar("engine", { length: 32 }).$type<"mysql" | "postgres">().default("mysql").notNull(),
+    engine: varchar("engine", { length: 32 }).$type<"mysql" | "postgres" | "sqlite">().default("mysql").notNull(),
     s3Key: varchar("s3_key", { length: 512 }).notNull(),
     sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),

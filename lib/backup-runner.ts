@@ -12,7 +12,7 @@ import {
   type PostgresBackupConnectionOptions,
 } from "./postgres-backup";
 
-export type DatabaseEngine = "mysql" | "postgres";
+export type DatabaseEngine = "mysql" | "postgres" | "sqlite";
 
 export interface RunBackupConnectionOptions {
   uri?: string;

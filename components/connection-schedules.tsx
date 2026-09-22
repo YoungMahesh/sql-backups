@@ -13,7 +13,7 @@ interface InlineSchedule {
 
 interface ConnectionSchedulesProps {
   savedConnectionId: string;
-  engine?: "mysql" | "postgres";
+  engine?: "mysql" | "postgres" | "sqlite";
 }
 
 export function ConnectionSchedules({ savedConnectionId, engine }: ConnectionSchedulesProps) {

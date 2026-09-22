@@ -29,13 +29,18 @@ export async function GET() {
 
     const sanitized = connections.map((conn) => {
       const isPostgres = conn.engine === "postgres";
-      let maskedUri = isPostgres ? "postgresql://..." : "mysql://...";
+      const isSqlite = conn.engine === "sqlite";
+      let maskedUri = isSqlite ? "libsql://..." : isPostgres ? "postgresql://..." : "mysql://...";
       try {
         const decrypted = decrypt(conn.encryptedConnectionString);
         maskedUri = maskConnectionString(decrypted);
       } catch {
-        const scheme = isPostgres ? "postgresql" : "mysql";
-        maskedUri = `${scheme}://${conn.username}:••••@${conn.host}:${conn.port}`;
+        if (isSqlite) {
+          maskedUri = `libsql://${conn.host}`;
+        } else {
+          const scheme = isPostgres ? "postgresql" : "mysql";
+          maskedUri = `${scheme}://${conn.username}:••••@${conn.host}:${conn.port}`;
+        }
       }
 
       return {

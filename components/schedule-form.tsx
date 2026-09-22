@@ -8,7 +8,7 @@ export interface SavedConnectionOption {
   port: number;
   username: string;
   database: string | null;
-  engine?: "mysql" | "postgres";
+  engine?: "mysql" | "postgres" | "sqlite";
 }
 
 interface ScheduleFormProps {
@@ -24,7 +24,7 @@ interface ScheduleFormProps {
     timezone: string;
     retentionCount: number;
     enabled: boolean;
-    engine?: "mysql" | "postgres";
+    engine?: "mysql" | "postgres" | "sqlite";
   };
   defaultDatabase?: string;
   defaultSavedConnectionId?: string;

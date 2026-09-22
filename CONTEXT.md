@@ -9,11 +9,11 @@ The internal PostgreSQL database powering SQL Backups, persisting user accounts,
 _Avoid_: Metadata DB, Internal DB, Config DB
 
 **Database Engine**:
-The database management system type of a Target Database (`mysql` or `postgres`), determining the dialect, connection protocol, and backup extraction strategy.
+The database management system type of a Target Database (`mysql`, `postgres`, or `sqlite` [libSQL / Turso]), determining the dialect, connection protocol, and backup extraction strategy.
 _Avoid_: Database Type, DBMS, Flavor
 
 **Target Database**:
-An external database instance (MySQL or PostgreSQL) connected to, inspected, and backed up via SQL Backups.
+An external database instance (MySQL, PostgreSQL, or remote libSQL/Turso SQLite) connected to, inspected, and backed up via SQL Backups.
 _Avoid_: Remote DB, External DB, Monitored DB
 
 **User Database**:

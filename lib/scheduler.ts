@@ -130,7 +130,7 @@ export async function applyRetention(
   host: string,
   port: number,
   retentionCount: number,
-  engine?: "mysql" | "postgres"
+  engine?: "mysql" | "postgres" | "sqlite"
 ): Promise<void> {
   const conditions = [
     eq(databaseBackup.userId, userId),

@@ -1,0 +1,1 @@
+ALTER TABLE "backup_schedule" ADD COLUMN "engine" varchar(32) DEFAULT 'mysql' NOT NULL;

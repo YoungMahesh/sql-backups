@@ -22,6 +22,7 @@ export const backupSchedule = pgTable(
       .notNull()
       .references(() => savedConnection.id, { onDelete: "cascade" }),
     databaseName: varchar("database_name", { length: 255 }).notNull(),
+    engine: varchar("engine", { length: 32 }).$type<"mysql" | "postgres" | "sqlite">().default("mysql").notNull(),
     cronExpression: varchar("cron_expression", { length: 100 }).notNull(),
     timezone: varchar("timezone", { length: 64 }).notNull(),
     retentionCount: integer("retention_count").default(7).notNull(),
