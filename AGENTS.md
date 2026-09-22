@@ -1,6 +1,5 @@
 # Instructions
 
-- Present a complete implementation plan and wait for explicit user approval before creating or modifying any files. Read-only codebase exploration to prepare the plan is permitted.
 - Use `pnpm` instead of `npm`.
 - Use `pnpm run lint && pnpm run typecheck` instead of `pnpm build`.
 - If you make any changes to the database schema, generate a database migration with `pnpm run db-generate` and apply it with `pnpm run db-migrate`.
