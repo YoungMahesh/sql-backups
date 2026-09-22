@@ -28,16 +28,19 @@ export async function GET() {
       .orderBy(desc(savedConnection.updatedAt));
 
     const sanitized = connections.map((conn) => {
-      let maskedUri = "mysql://...";
+      const isPostgres = conn.engine === "postgres";
+      let maskedUri = isPostgres ? "postgresql://..." : "mysql://...";
       try {
         const decrypted = decrypt(conn.encryptedConnectionString);
         maskedUri = maskConnectionString(decrypted);
       } catch {
-        maskedUri = `mysql://${conn.username}:••••@${conn.host}:${conn.port}`;
+        const scheme = isPostgres ? "postgresql" : "mysql";
+        maskedUri = `${scheme}://${conn.username}:••••@${conn.host}:${conn.port}`;
       }
 
       return {
         id: conn.id,
+        engine: conn.engine || "mysql",
         host: conn.host,
         port: conn.port,
         username: conn.username,

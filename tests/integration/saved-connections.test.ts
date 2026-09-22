@@ -161,4 +161,77 @@ describe("Saved Connections Integration", () => {
     const decrypted = decrypt(row.rawStoredValue);
     expect(decrypted).toBe(rawSecretUri);
   });
+
+  it("defaults engine to 'mysql' and supports explicit 'postgres' engine connections", async () => {
+    const testUserId = crypto.randomUUID();
+    await db.insert(user).values({
+      id: testUserId,
+      name: "Engine Test User",
+      email: `${testUserId}@example.com`,
+    });
+
+    const mysqlConnId = crypto.randomUUID();
+    const pgConnId = crypto.randomUUID();
+
+    // 1. Insert connection without specifying engine (should default to 'mysql')
+    await db.insert(savedConnection).values({
+      id: mysqlConnId,
+      userId: testUserId,
+      host: "mysql.local",
+      port: 3306,
+      username: "root",
+      encryptedConnectionString: encrypt("mysql://root@mysql.local:3306"),
+    });
+
+    // 2. Insert connection with explicit 'postgres' engine
+    const pgUri = "postgresql://pguser:pgpass123@postgres.local:5432/my_app";
+    await db.insert(savedConnection).values({
+      id: pgConnId,
+      userId: testUserId,
+      host: "postgres.local",
+      port: 5432,
+      username: "pguser",
+      database: "my_app",
+      engine: "postgres",
+      encryptedConnectionString: encrypt(pgUri),
+    });
+
+    // 3. Query both and verify engines
+    const [fetchedMysql] = await db
+      .select()
+      .from(savedConnection)
+      .where(eq(savedConnection.id, mysqlConnId));
+    expect(fetchedMysql).toBeDefined();
+    expect(fetchedMysql.engine).toBe("mysql");
+    expect(fetchedMysql.port).toBe(3306);
+
+    const [fetchedPg] = await db
+      .select()
+      .from(savedConnection)
+      .where(eq(savedConnection.id, pgConnId));
+    expect(fetchedPg).toBeDefined();
+    expect(fetchedPg.engine).toBe("postgres");
+    expect(fetchedPg.port).toBe(5432);
+    expect(fetchedPg.username).toBe("pguser");
+    expect(fetchedPg.database).toBe("my_app");
+    expect(decrypt(fetchedPg.encryptedConnectionString)).toBe(pgUri);
+
+    // 4. Update postgres connection
+    const updatedPgUri = "postgresql://pguser:newpass@postgres.local:5432/my_app_v2";
+    await db
+      .update(savedConnection)
+      .set({
+        database: "my_app_v2",
+        encryptedConnectionString: encrypt(updatedPgUri),
+      })
+      .where(eq(savedConnection.id, pgConnId));
+
+    const [updatedPg] = await db
+      .select()
+      .from(savedConnection)
+      .where(eq(savedConnection.id, pgConnId));
+    expect(updatedPg.database).toBe("my_app_v2");
+    expect(decrypt(updatedPg.encryptedConnectionString)).toBe(updatedPgUri);
+  });
 });
+

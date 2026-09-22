@@ -1,17 +1,17 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import mysql, { type Connection } from "mysql2/promise";
 import crypto from "node:crypto";
 import { db } from "@/db";
 import { savedConnection } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
+import { decrypt, encrypt, parseConnectionString, serializeToConnectionString } from "@/lib/crypto";
 import {
-  decrypt,
-  encrypt,
-  parseConnectionString,
-  serializeToConnectionString,
-} from "@/lib/crypto";
+  listPostgresUserDatabases,
+  parsePostgresErrorMessage,
+  resolvePostgresUri,
+  testPostgresConnection,
+} from "@/lib/postgres-connection";
 
 export const runtime = "nodejs";
 
@@ -22,46 +22,12 @@ interface ConnectionPayload {
   port?: number | string;
   user?: string;
   password?: string;
+  database?: string;
   savedConnectionId?: string;
   testOnly?: boolean;
 }
 
-const SYSTEM_DATABASES = new Set([
-  "information_schema",
-  "mysql",
-  "performance_schema",
-  "sys",
-]);
-
-function parseErrorMessage(err: unknown): string {
-  if (typeof err !== "object" || err === null) {
-    return "An unexpected error occurred while connecting to the MySQL server.";
-  }
-
-  const errorObj = err as { code?: string; errno?: number; message?: string; sqlMessage?: string };
-
-  if (errorObj.code === "ECONNREFUSED") {
-    return "Connection refused. Please verify that the MySQL server is running and accessible on the specified host and port.";
-  }
-  if (errorObj.code === "ENOTFOUND") {
-    return "Hostname not found. Please check that the server path / address is correct.";
-  }
-  if (errorObj.code === "ETIMEDOUT") {
-    return "Connection timed out (10s limit). Please check your server availability and network/firewall rules.";
-  }
-  if (errorObj.code === "ER_ACCESS_DENIED_ERROR") {
-    return errorObj.sqlMessage || "Access denied. Please check your username and password.";
-  }
-  if (errorObj.code === "EHOSTUNREACH") {
-    return "Host unreachable. Please verify network routing and that the MySQL server is publicly or locally reachable.";
-  }
-
-  return errorObj.sqlMessage || errorObj.message || "Failed to connect to the MySQL server.";
-}
-
 export async function POST(req: Request) {
-  let connection: Connection | null = null;
-
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -76,10 +42,9 @@ export async function POST(req: Request) {
 
     const body = (await req.json()) as ConnectionPayload;
 
-    let connectionOptions: mysql.ConnectionOptions;
     let displayHost = "localhost";
-    let displayPort = 3306;
-    let displayUser = "root";
+    let displayPort = 5432;
+    let displayUser = "postgres";
     let targetDatabase: string | undefined = undefined;
     let canonicalUri = "";
 
@@ -123,45 +88,27 @@ export async function POST(req: Request) {
       displayPort = parsed.port;
       displayUser = parsed.user;
       targetDatabase = parsed.database;
-
-      connectionOptions = {
-        uri: canonicalUri,
-        connectTimeout: 10000,
-      };
     } else if (body.mode === "uri") {
-      let uri = body.connectionString?.trim() || "";
-      if (!uri) {
+      const uriInput = body.connectionString?.trim() || "";
+      if (!uriInput) {
         return NextResponse.json(
           { error: "Connection string is required." },
           { status: 400 }
         );
       }
 
-      // Automatically add mysql:// scheme if omitted
-      if (!uri.startsWith("mysql://") && !uri.startsWith("mysqls://")) {
-        uri = `mysql://${uri}`;
-      }
-
-      try {
-        const parsed = parseConnectionString(uri);
-        displayHost = parsed.host;
-        displayPort = parsed.port;
-        displayUser = parsed.user;
-        targetDatabase = parsed.database;
-      } catch {
-        displayHost = "custom-connection";
-      }
-
-      canonicalUri = uri;
-      connectionOptions = {
-        uri,
-        connectTimeout: 10000,
-      };
+      const resolved = resolvePostgresUri({ connectionString: uriInput });
+      canonicalUri = resolved.uri;
+      displayHost = resolved.host;
+      displayPort = resolved.port;
+      displayUser = resolved.user;
+      targetDatabase = resolved.database;
     } else {
       const host = body.host?.trim();
       const user = body.user?.trim();
       const password = body.password ?? "";
       const portRaw = body.port;
+      const database = body.database?.trim();
 
       if (!host) {
         return NextResponse.json(
@@ -177,7 +124,7 @@ export async function POST(req: Request) {
         );
       }
 
-      let port = 3306;
+      let port = 5432;
       if (portRaw !== undefined && portRaw !== null && String(portRaw).trim() !== "") {
         const parsedPort = parseInt(String(portRaw).trim(), 10);
         if (isNaN(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
@@ -192,68 +139,37 @@ export async function POST(req: Request) {
       displayHost = host;
       displayPort = port;
       displayUser = user;
+      targetDatabase = database;
 
       canonicalUri = serializeToConnectionString({
+        engine: "postgres",
         host,
         port,
         user,
         password,
+        database: database || "postgres",
       });
-
-      connectionOptions = {
-        host,
-        port,
-        user,
-        password,
-        connectTimeout: 10000,
-      };
     }
 
-    // Attempt to establish connection
-    connection = await mysql.createConnection(connectionOptions);
-
-    // Fetch MySQL version
-    let serverVersion = "Unknown";
-    try {
-      const [versionResult] = await connection.query("SELECT VERSION() as version;");
-      if (Array.isArray(versionResult) && versionResult.length > 0) {
-        const row = versionResult[0] as Record<string, unknown>;
-        serverVersion = String(row.version ?? "Unknown");
-      }
-    } catch {
-      // Non-critical, continue
-    }
-
+    // If testOnly is requested, test connectivity without listing databases or saving
     if (body.testOnly) {
+      const testResult = await testPostgresConnection(canonicalUri);
       return NextResponse.json({
         success: true,
-        message: "Successfully connected to MySQL server.",
+        message: "Successfully connected to PostgreSQL server.",
         serverInfo: {
           host: displayHost,
           port: displayPort,
           user: displayUser,
-          version: serverVersion,
+          version: testResult.version,
         },
       });
     }
 
-    // Fetch user databases (excluding MySQL system databases)
-    const [rows] = await connection.query("SHOW DATABASES;");
+    // Connect to PostgreSQL and fetch user databases (excluding postgres, template0, template1)
+    const { databases, version } = await listPostgresUserDatabases(canonicalUri);
 
-    const rawDatabases: string[] = Array.isArray(rows)
-      ? rows
-          .map((row) => {
-            const r = row as Record<string, unknown>;
-            return String(r.Database ?? r.database ?? Object.values(r)[0] ?? "");
-          })
-          .filter(Boolean)
-      : [];
-
-    const databases = rawDatabases.filter(
-      (db) => !SYSTEM_DATABASES.has(db.toLowerCase())
-    );
-
-    // Automatically store / update saved connection upon successful connection
+    // Persist or update saved connection upon successful connection
     if (body.mode === "saved" && body.savedConnectionId) {
       try {
         await db
@@ -279,7 +195,7 @@ export async function POST(req: Request) {
               eq(savedConnection.host, displayHost),
               eq(savedConnection.port, displayPort),
               eq(savedConnection.username, displayUser),
-              eq(savedConnection.engine, "mysql")
+              eq(savedConnection.engine, "postgres")
             )
           )
           .limit(1);
@@ -294,7 +210,7 @@ export async function POST(req: Request) {
               encryptedConnectionString: encrypted,
               updatedAt: now,
               database: targetDatabase || null,
-              engine: "mysql",
+              engine: "postgres",
             })
             .where(eq(savedConnection.id, existing.id));
         } else {
@@ -305,14 +221,14 @@ export async function POST(req: Request) {
             port: displayPort,
             username: displayUser,
             database: targetDatabase || null,
-            engine: "mysql",
+            engine: "postgres",
             encryptedConnectionString: encrypted,
             createdAt: now,
             updatedAt: now,
           });
         }
       } catch (persistErr) {
-        console.error("Failed to persist saved connection:", persistErr);
+        console.error("Failed to persist PostgreSQL saved connection:", persistErr);
       }
     }
 
@@ -324,24 +240,11 @@ export async function POST(req: Request) {
         host: displayHost,
         port: displayPort,
         user: displayUser,
-        version: serverVersion,
+        version,
       },
     });
   } catch (err: unknown) {
-    const message = parseErrorMessage(err);
-    return NextResponse.json(
-      {
-        error: message,
-      },
-      { status: 400 }
-    );
-  } finally {
-    if (connection) {
-      try {
-        await connection.end();
-      } catch {
-        // Ignore disconnection errors
-      }
-    }
+    const message = parsePostgresErrorMessage(err);
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

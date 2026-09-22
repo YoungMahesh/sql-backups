@@ -57,13 +57,19 @@ export function decrypt(cipherText: string): string {
 }
 
 /**
- * Masks the password in a MySQL connection string URI for safe UI display.
+ * Masks the password in a MySQL or PostgreSQL connection string URI for safe UI display.
  * E.g. mysql://root:secret@localhost:3306/db -> mysql://root:••••@localhost:3306/db
+ *      postgresql://postgres:secret@localhost:5432/db -> postgresql://postgres:••••@localhost:5432/db
  */
 export function maskConnectionString(uri: string): string {
   try {
     let parseableUri = uri.trim();
-    if (!parseableUri.startsWith("mysql://") && !parseableUri.startsWith("mysqls://")) {
+    if (
+      !parseableUri.startsWith("mysql://") &&
+      !parseableUri.startsWith("mysqls://") &&
+      !parseableUri.startsWith("postgresql://") &&
+      !parseableUri.startsWith("postgres://")
+    ) {
       parseableUri = `mysql://${parseableUri}`;
     }
 
@@ -75,11 +81,12 @@ export function maskConnectionString(uri: string): string {
     return decodeURIComponent(url.toString());
   } catch {
     // Regex fallback if URL parsing fails
-    return uri.replace(/(mysql[s]?:\/\/[^:]+:)[^@]+(@)/i, "$1••••$2");
+    return uri.replace(/((?:mysql[s]?|postgres(?:ql)?):\/\/[^:]+:)[^@]+(@)/i, "$1••••$2");
   }
 }
 
 export interface ConnectionParts {
+  engine?: "mysql" | "postgres";
   host: string;
   port: number;
   user: string;
@@ -88,17 +95,22 @@ export interface ConnectionParts {
 }
 
 /**
- * Serializes discrete connection parameters into a canonical MySQL connection string.
+ * Serializes discrete connection parameters into a canonical MySQL or PostgreSQL connection string.
  */
 export function serializeToConnectionString(params: {
+  engine?: "mysql" | "postgres";
   host: string;
   port?: number | string;
   user: string;
   password?: string;
   database?: string;
 }): string {
+  const engine = params.engine || "mysql";
+  const defaultPort = engine === "postgres" ? 5432 : 3306;
+  const scheme = engine === "postgres" ? "postgresql" : "mysql";
+
   const host = params.host.trim();
-  const port = params.port ? Number(params.port) : 3306;
+  const port = params.port ? Number(params.port) : defaultPort;
   const user = encodeURIComponent(params.user.trim());
   const pass = params.password !== undefined && params.password !== ""
     ? `:${encodeURIComponent(params.password)}`
@@ -107,27 +119,35 @@ export function serializeToConnectionString(params: {
     ? `/${encodeURIComponent(params.database.trim())}`
     : "";
 
-  return `mysql://${user}${pass}@${host}:${port}${db}`;
+  return `${scheme}://${user}${pass}@${host}:${port}${db}`;
 }
 
 /**
- * Parses a MySQL connection string into constituent parameters.
+ * Parses a MySQL or PostgreSQL connection string into constituent parameters.
  */
 export function parseConnectionString(uri: string): ConnectionParts {
   let parseableUri = uri.trim();
-  if (!parseableUri.startsWith("mysql://") && !parseableUri.startsWith("mysqls://")) {
+  const isPostgres =
+    parseableUri.startsWith("postgresql://") || parseableUri.startsWith("postgres://");
+
+  if (!isPostgres && !parseableUri.startsWith("mysql://") && !parseableUri.startsWith("mysqls://")) {
     parseableUri = `mysql://${parseableUri}`;
   }
 
+  const engine: "mysql" | "postgres" = isPostgres ? "postgres" : "mysql";
+  const defaultPort = isPostgres ? 5432 : 3306;
+
   const url = new URL(parseableUri);
   const host = url.hostname || "localhost";
-  const port = url.port ? parseInt(url.port, 10) : 3306;
-  const user = decodeURIComponent(url.username || "root");
+  const port = url.port ? parseInt(url.port, 10) : defaultPort;
+  const defaultUser = isPostgres ? "postgres" : "root";
+  const user = decodeURIComponent(url.username || defaultUser);
   const password = url.password ? decodeURIComponent(url.password) : undefined;
   const dbPath = url.pathname.replace(/^\//, "").trim();
   const database = dbPath ? decodeURIComponent(dbPath) : undefined;
 
   return {
+    engine,
     host,
     port,
     user,

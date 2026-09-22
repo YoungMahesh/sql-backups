@@ -20,6 +20,7 @@ export const savedConnection = pgTable(
     port: integer("port").default(3306).notNull(),
     username: varchar("username", { length: 255 }).notNull(),
     database: varchar("database", { length: 255 }),
+    engine: varchar("engine", { length: 32 }).$type<"mysql" | "postgres">().default("mysql").notNull(),
     encryptedConnectionString: text("encrypted_connection_string").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })

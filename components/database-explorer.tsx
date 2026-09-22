@@ -13,6 +13,7 @@ interface ServerInfo {
 
 interface SavedConnectionItem {
   id: string;
+  engine?: "mysql" | "postgres";
   host: string;
   port: number;
   username: string;
@@ -44,6 +45,7 @@ function formatRelativeTime(dateString: string): string {
 }
 
 interface ActiveConnectionState {
+  engine?: "mysql" | "postgres";
   mode: "params" | "uri" | "saved";
   host?: string;
   port?: number;
@@ -59,6 +61,7 @@ interface DatabaseExplorerProps {
 
 export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}) {
   // Connection Configuration
+  const [engine, setEngine] = useState<"mysql" | "postgres">("mysql");
   const [connectMode, setConnectMode] = useState<"params" | "uri">("params");
   const [host, setHost] = useState("localhost");
   const [port, setPort] = useState("3306");
@@ -69,8 +72,10 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
 
   // Connection & Data State
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [testSuccess, setTestSuccess] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [databases, setDatabases] = useState<string[]>([]);
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
@@ -161,28 +166,106 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
     fetchSavedConnections();
   };
 
-  const handleConnect = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleEngineChange = (newEngine: "mysql" | "postgres") => {
+    if (newEngine === engine) return;
+    setEngine(newEngine);
     setConnectError(null);
-    setIsConnecting(true);
-    setConnectingId(null);
+    setTestSuccess(null);
+
+    if (newEngine === "postgres") {
+      if (port === "3306" || !port) setPort("5432");
+      if (user === "root" || !user) setUser("postgres");
+      if (connectionString.startsWith("mysql://")) {
+        setConnectionString("");
+      }
+    } else {
+      if (port === "5432" || !port) setPort("3306");
+      if (user === "postgres" || !user) setUser("root");
+      if (
+        connectionString.startsWith("postgresql://") ||
+        connectionString.startsWith("postgres://")
+      ) {
+        setConnectionString("");
+      }
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setConnectError(null);
+    setTestSuccess(null);
+    setIsTesting(true);
 
     try {
-      const payload: ActiveConnectionState =
+      const defaultPort = engine === "postgres" ? 5432 : 3306;
+      const payload =
         connectMode === "uri"
           ? {
               mode: "uri",
               connectionString: connectionString.trim(),
+              testOnly: true,
             }
           : {
               mode: "params",
               host: host.trim(),
-              port: port.trim() ? parseInt(port.trim(), 10) : 3306,
+              port: port.trim() ? parseInt(port.trim(), 10) : defaultPort,
+              user: user.trim(),
+              password,
+              testOnly: true,
+            };
+
+      const endpoint =
+        engine === "postgres" ? "/api/postgres/databases" : "/api/mysql/databases";
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Connection test failed.");
+      }
+
+      setTestSuccess(
+        `Connection verified successfully! Reachable on ${data.serverInfo?.host}:${data.serverInfo?.port} (version: ${data.serverInfo?.version || "Unknown"})`
+      );
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Connection test failed.";
+      setConnectError(message);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const handleConnect = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setConnectError(null);
+    setTestSuccess(null);
+    setIsConnecting(true);
+    setConnectingId(null);
+
+    try {
+      const defaultPort = engine === "postgres" ? 5432 : 3306;
+      const payload: ActiveConnectionState =
+        connectMode === "uri"
+          ? {
+              engine,
+              mode: "uri",
+              connectionString: connectionString.trim(),
+            }
+          : {
+              engine,
+              mode: "params",
+              host: host.trim(),
+              port: port.trim() ? parseInt(port.trim(), 10) : defaultPort,
               user: user.trim(),
               password,
             };
 
-      const res = await fetch("/api/mysql/databases", {
+      const endpoint =
+        engine === "postgres" ? "/api/postgres/databases" : "/api/mysql/databases";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -193,7 +276,10 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to connect to MySQL server.");
+        throw new Error(
+          data.error ||
+            `Failed to connect to ${engine === "postgres" ? "PostgreSQL" : "MySQL"} server.`
+        );
       }
 
       setActiveConnection(payload);
@@ -211,16 +297,22 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
 
   const handleConnectSaved = async (id: string) => {
     setConnectError(null);
+    setTestSuccess(null);
     setIsConnecting(true);
     setConnectingId(id);
 
     try {
+      const savedConn = savedConnections.find((c) => c.id === id);
+      const connEngine = savedConn?.engine || "mysql";
       const payload: ActiveConnectionState = {
+        engine: connEngine,
         mode: "saved",
         savedConnectionId: id,
       };
 
-      const res = await fetch("/api/mysql/databases", {
+      const endpoint =
+        connEngine === "postgres" ? "/api/postgres/databases" : "/api/mysql/databases";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -231,9 +323,13 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to connect to MySQL server.");
+        throw new Error(
+          data.error ||
+            `Failed to connect to ${connEngine === "postgres" ? "PostgreSQL" : "MySQL"} server.`
+        );
       }
 
+      setEngine(connEngine);
       setActiveConnection(payload);
       handleConnectionSuccess(data);
     } catch (err: unknown) {
@@ -251,8 +347,16 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
   const handleFillConnection = async (id: string) => {
     setFillingId(id);
     setConnectError(null);
+    setTestSuccess(null);
     try {
-      const res = await fetch(`/api/mysql/connections/${id}`);
+      const savedConn = savedConnections.find((c) => c.id === id);
+      const connEngine = savedConn?.engine || "mysql";
+      const endpoint =
+        connEngine === "postgres"
+          ? `/api/postgres/connections/${id}`
+          : `/api/mysql/connections/${id}`;
+
+      const res = await fetch(endpoint);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to load connection details.");
@@ -260,10 +364,11 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
 
       const conn = data.connection;
       if (conn) {
+        setEngine(connEngine);
         setConnectionString(conn.connectionString || "");
         setHost(conn.host || "localhost");
-        setPort(String(conn.port || 3306));
-        setUser(conn.user || "root");
+        setPort(String(conn.port || (connEngine === "postgres" ? 5432 : 3306)));
+        setUser(conn.user || (connEngine === "postgres" ? "postgres" : "root"));
         setPassword(conn.password || "");
 
         // Scroll smoothly to top connection form
@@ -281,7 +386,14 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
   const handleDeleteConnection = async (id: string) => {
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/mysql/connections/${id}`, {
+      const savedConn = savedConnections.find((c) => c.id === id);
+      const connEngine = savedConn?.engine || "mysql";
+      const endpoint =
+        connEngine === "postgres"
+          ? `/api/postgres/connections/${id}`
+          : `/api/mysql/connections/${id}`;
+
+      const res = await fetch(endpoint, {
         method: "DELETE",
       });
 
@@ -308,6 +420,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
     setServerInfo(null);
     setSearchQuery("");
     setConnectError(null);
+    setTestSuccess(null);
     setBackupSuccess(null);
     setBackupError(null);
     fetchSavedConnections();
@@ -316,13 +429,14 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
   const handleClear = () => {
     if (connectMode === "params") {
       setHost("localhost");
-      setPort("3306");
-      setUser("root");
+      setPort(engine === "postgres" ? "5432" : "3306");
+      setUser(engine === "postgres" ? "postgres" : "root");
       setPassword("");
     } else {
       setConnectionString("");
     }
     setConnectError(null);
+    setTestSuccess(null);
   };
 
   const handleBackup = async (dbName: string) => {
@@ -381,43 +495,73 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-hairline pb-5">
               <div>
                 <h2 className="font-serif text-xl sm:text-2xl font-normal tracking-tight text-ink">
-                  Connect to MySQL Server
+                  Connect to {engine === "postgres" ? "PostgreSQL" : "MySQL"} Server
                 </h2>
                 <p className="mt-1 text-sm text-muted">
                   Connect via 4 individual parameters or paste a single connection string.
                 </p>
               </div>
 
-              {/* Mode Selector Tabs */}
-              <div className="flex rounded-lg border border-hairline bg-surface-soft p-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConnectMode("params");
-                    setConnectError(null);
-                  }}
-                  className={`rounded-md px-3.5 py-1.5 text-xs font-medium transition ${
-                    connectMode === "params"
-                      ? "bg-canvas text-ink border border-hairline shadow-xs font-semibold"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  4 Server Fields
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConnectMode("uri");
-                    setConnectError(null);
-                  }}
-                  className={`rounded-md px-3.5 py-1.5 text-xs font-medium transition ${
-                    connectMode === "uri"
-                      ? "bg-canvas text-ink border border-hairline shadow-xs font-semibold"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  Connection String
-                </button>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Engine Selector Toggle */}
+                <div className="flex rounded-lg border border-hairline bg-surface-soft p-1">
+                  <button
+                    type="button"
+                    onClick={() => handleEngineChange("mysql")}
+                    className={`rounded-md px-3.5 py-1.5 text-xs font-medium transition ${
+                      engine === "mysql"
+                        ? "bg-canvas text-ink border border-hairline shadow-xs font-semibold"
+                        : "text-muted hover:text-ink"
+                    }`}
+                  >
+                    MySQL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleEngineChange("postgres")}
+                    className={`rounded-md px-3.5 py-1.5 text-xs font-medium transition ${
+                      engine === "postgres"
+                        ? "bg-canvas text-ink border border-hairline shadow-xs font-semibold"
+                        : "text-muted hover:text-ink"
+                    }`}
+                  >
+                    PostgreSQL
+                  </button>
+                </div>
+
+                {/* Mode Selector Tabs */}
+                <div className="flex rounded-lg border border-hairline bg-surface-soft p-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConnectMode("params");
+                      setConnectError(null);
+                      setTestSuccess(null);
+                    }}
+                    className={`rounded-md px-3.5 py-1.5 text-xs font-medium transition ${
+                      connectMode === "params"
+                        ? "bg-canvas text-ink border border-hairline shadow-xs font-semibold"
+                        : "text-muted hover:text-ink"
+                    }`}
+                  >
+                    4 Server Fields
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConnectMode("uri");
+                      setConnectError(null);
+                      setTestSuccess(null);
+                    }}
+                    className={`rounded-md px-3.5 py-1.5 text-xs font-medium transition ${
+                      connectMode === "uri"
+                        ? "bg-canvas text-ink border border-hairline shadow-xs font-semibold"
+                        : "text-muted hover:text-ink"
+                    }`}
+                  >
+                    Connection String
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -442,20 +586,46 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
               </div>
             )}
 
+            {/* Test Connection Success Message */}
+            {testSuccess && (
+              <div className="mb-6 flex items-start gap-3 rounded-lg border border-success/30 bg-success/10 p-4 text-sm text-success">
+                <svg
+                  className="mt-0.5 h-5 w-5 shrink-0 text-success"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <div className="flex-1">
+                  <p className="font-semibold">Connection Verified</p>
+                  <p className="mt-0.5 text-xs leading-relaxed opacity-90">{testSuccess}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTestSuccess(null)}
+                  className="text-success hover:opacity-75 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <form onSubmit={handleConnect} className="space-y-4">
               {connectMode === "params" ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {/* Server Path / Host */}
                   <div className="sm:col-span-2 md:col-span-1">
                     <label
-                      htmlFor="mysql-host"
+                      htmlFor={`${engine}-host`}
                       className="block text-xs font-semibold uppercase tracking-wider text-body"
                     >
                       Server Path / Host <span className="text-primary">*</span>
                     </label>
                     <div className="mt-1.5">
                       <input
-                        id="mysql-host"
+                        id={`${engine}-host`}
                         type="text"
                         required
                         value={host}
@@ -470,40 +640,42 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                   {/* Server Port */}
                   <div className="sm:col-span-2 md:col-span-1">
                     <label
-                      htmlFor="mysql-port"
+                      htmlFor={`${engine}-port`}
                       className="block text-xs font-semibold uppercase tracking-wider text-body"
                     >
                       Server Port
                     </label>
                     <div className="mt-1.5">
                       <input
-                        id="mysql-port"
+                        id={`${engine}-port`}
                         type="number"
                         value={port}
                         onChange={(e) => setPort(e.target.value)}
-                        placeholder="3306"
+                        placeholder={engine === "postgres" ? "5432" : "3306"}
                         className="block w-full rounded-md border border-hairline bg-canvas px-3.5 py-2.5 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:bg-canvas focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
-                    <p className="mt-1 text-[11px] text-muted-soft">Default MySQL port is 3306</p>
+                    <p className="mt-1 text-[11px] text-muted-soft">
+                      Default {engine === "postgres" ? "PostgreSQL port is 5432" : "MySQL port is 3306"}
+                    </p>
                   </div>
 
                   {/* Username */}
                   <div>
                     <label
-                      htmlFor="mysql-user"
+                      htmlFor={`${engine}-user`}
                       className="block text-xs font-semibold uppercase tracking-wider text-body"
                     >
                       Username <span className="text-primary">*</span>
                     </label>
                     <div className="mt-1.5">
                       <input
-                        id="mysql-user"
+                        id={`${engine}-user`}
                         type="text"
                         required
                         value={user}
                         onChange={(e) => setUser(e.target.value)}
-                        placeholder="root"
+                        placeholder={engine === "postgres" ? "postgres" : "root"}
                         className="block w-full rounded-md border border-hairline bg-canvas px-3.5 py-2.5 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:bg-canvas focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
@@ -513,7 +685,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                   <div>
                     <div className="flex items-center justify-between">
                       <label
-                        htmlFor="mysql-password"
+                        htmlFor={`${engine}-password`}
                         className="block text-xs font-semibold uppercase tracking-wider text-body"
                       >
                         Password
@@ -521,7 +693,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                     </div>
                     <div className="relative mt-1.5">
                       <input
-                        id="mysql-password"
+                        id={`${engine}-password`}
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -554,24 +726,34 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                 /* Single Connection String */
                 <div>
                   <label
-                    htmlFor="mysql-connection-string"
+                    htmlFor={`${engine}-connection-string`}
                     className="block text-xs font-semibold uppercase tracking-wider text-body"
                   >
-                    MySQL Connection String <span className="text-primary">*</span>
+                    {engine === "postgres" ? "PostgreSQL" : "MySQL"} Connection String <span className="text-primary">*</span>
                   </label>
                   <div className="mt-1.5">
                     <input
-                      id="mysql-connection-string"
+                      id={`${engine}-connection-string`}
                       type="text"
                       required
                       value={connectionString}
                       onChange={(e) => setConnectionString(e.target.value)}
-                      placeholder="mysql://user:password@localhost:3306/database"
+                      placeholder={
+                        engine === "postgres"
+                          ? "postgresql://postgres:password@localhost:5432/database"
+                          : "mysql://user:password@localhost:3306/database"
+                      }
                       className="block w-full rounded-md border border-hairline bg-canvas px-3.5 py-2.5 font-mono text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:bg-canvas focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <p className="mt-1.5 text-xs text-muted">
-                    Format: <code className="font-mono text-body">mysql://username:password@host:port/database</code> (database name is optional)
+                    Format:{" "}
+                    <code className="font-mono text-body">
+                      {engine === "postgres"
+                        ? "postgresql://username:password@host:port/database"
+                        : "mysql://username:password@host:port/database"}
+                    </code>{" "}
+                    (database name is optional)
                   </p>
                 </div>
               )}
@@ -580,14 +762,37 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                 <button
                   type="button"
                   onClick={handleClear}
-                  disabled={isConnecting}
+                  disabled={isConnecting || isTesting}
                   className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm font-medium text-body transition hover:bg-surface-soft hover:text-ink focus-visible:outline-2"
                 >
                   Clear
                 </button>
                 <button
+                  type="button"
+                  onClick={handleTestConnection}
+                  disabled={isConnecting || isTesting}
+                  className="flex items-center justify-center gap-2 rounded-md border border-hairline bg-canvas px-4 py-2 text-sm font-medium text-ink shadow-xs transition hover:bg-surface-soft focus-visible:outline-2 disabled:opacity-60"
+                >
+                  {isTesting ? (
+                    <>
+                      <svg className="h-4 w-4 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Testing Connectivity...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-4 w-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Test Connection</span>
+                    </>
+                  )}
+                </button>
+                <button
                   type="submit"
-                  disabled={isConnecting}
+                  disabled={isConnecting || isTesting}
                   className="flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-on-primary shadow-xs transition hover:bg-primary-active focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
                 >
                   {isConnecting && !connectingId ? (
@@ -630,7 +835,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                     </span>
                   </div>
                   <p className="text-xs text-muted">
-                    Previously used MySQL server configurations. Stored encrypted at rest.
+                    Previously used database server configurations. Stored encrypted at rest.
                   </p>
                 </div>
               </div>
@@ -690,7 +895,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                 </svg>
                 <p className="mt-2 text-xs font-semibold text-ink">No saved connections yet</p>
                 <p className="mt-1 text-[11px] text-muted">
-                  Whenever you connect to a MySQL server above, it will be automatically saved here for one-click access.
+                  Whenever you connect to a MySQL or PostgreSQL server above, it will be automatically saved here for one-click access.
                 </p>
               </div>
             ) : (
@@ -711,6 +916,15 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-sm text-ink">
                             {item.host}:{item.port}
+                          </span>
+                          <span
+                            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
+                              item.engine === "postgres"
+                                ? "border-hairline bg-surface-cream-strong text-body-strong"
+                                : "border-hairline bg-surface-soft text-body"
+                            }`}
+                          >
+                            {item.engine === "postgres" ? "PostgreSQL" : "MySQL"}
                           </span>
                           <span className="inline-flex items-center rounded-md border border-hairline bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-body">
                             user: {item.username}
@@ -840,6 +1054,15 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                   <span className="text-sm font-semibold text-ink">
                     Connected to {serverInfo?.host}:{serverInfo?.port}
                   </span>
+                  <span
+                    className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${
+                      activeConnection?.engine === "postgres"
+                        ? "border-hairline bg-surface-cream-strong text-body-strong"
+                        : "border-hairline bg-surface-soft text-body"
+                    }`}
+                  >
+                    {activeConnection?.engine === "postgres" ? "PostgreSQL" : "MySQL"}
+                  </span>
                   <span className="inline-flex items-center rounded-full border border-success/30 bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
                     Active
                   </span>
@@ -897,6 +1120,9 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                   </h3>
                   <p className="text-xs text-muted">
                     Total {databases.length} user database{databases.length === 1 ? "" : "s"} discovered
+                    {activeConnection?.engine === "postgres"
+                      ? " (system databases postgres, template0, template1 excluded)"
+                      : " (system databases excluded)"}
                   </p>
                 </div>
               </div>
@@ -992,6 +1218,8 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                   <p className="mt-1 text-xs text-muted">
                     {searchQuery
                       ? `No databases match "${searchQuery}".`
+                      : activeConnection?.engine === "postgres"
+                      ? "No user databases found on this PostgreSQL server. (System databases postgres, template0, template1 are excluded)"
                       : "No user databases found on this MySQL server. (System databases are excluded)"}
                   </p>
                 </div>
