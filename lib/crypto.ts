@@ -92,6 +92,8 @@ export interface ConnectionParts {
   user: string;
   password?: string;
   database?: string;
+  search?: string;
+  ssl?: string | boolean;
 }
 
 /**
@@ -104,6 +106,8 @@ export function serializeToConnectionString(params: {
   user: string;
   password?: string;
   database?: string;
+  ssl?: boolean | string;
+  search?: string;
 }): string {
   const engine = params.engine || "mysql";
   const defaultPort = engine === "postgres" ? 5432 : 3306;
@@ -119,7 +123,17 @@ export function serializeToConnectionString(params: {
     ? `/${encodeURIComponent(params.database.trim())}`
     : "";
 
-  return `${scheme}://${user}${pass}@${host}:${port}${db}`;
+  let search = params.search || "";
+  if (!search && params.ssl) {
+    if (engine === "postgres") {
+      const mode = typeof params.ssl === "string" ? params.ssl : "require";
+      search = `?sslmode=${encodeURIComponent(mode)}`;
+    } else {
+      search = "?ssl=true";
+    }
+  }
+
+  return `${scheme}://${user}${pass}@${host}:${port}${db}${search}`;
 }
 
 /**
@@ -145,6 +159,15 @@ export function parseConnectionString(uri: string): ConnectionParts {
   const password = url.password ? decodeURIComponent(url.password) : undefined;
   const dbPath = url.pathname.replace(/^\//, "").trim();
   const database = dbPath ? decodeURIComponent(dbPath) : undefined;
+  const search = url.search || undefined;
+
+  let ssl: string | boolean | undefined;
+  if (url.searchParams.has("sslmode")) {
+    ssl = url.searchParams.get("sslmode")!;
+  } else if (url.searchParams.has("ssl")) {
+    const val = url.searchParams.get("ssl");
+    ssl = val === "true" || val === "1" ? true : val || false;
+  }
 
   return {
     engine,
@@ -153,5 +176,7 @@ export function parseConnectionString(uri: string): ConnectionParts {
     user,
     password,
     database,
+    search,
+    ssl,
   };
 }

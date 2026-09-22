@@ -8,6 +8,7 @@ import {
   formatPostgresInsertStatement,
   reconstructPostgresTableDdl,
   backupPostgresDatabaseToS3,
+  buildTargetPostgresUri,
 } from "@/lib/postgres-backup";
 import type { BackupManifest } from "@/lib/manifest";
 import type { Sql } from "postgres";
@@ -413,5 +414,54 @@ describe("PostgreSQL Streaming Backup Pipeline & Manifest", () => {
     );
 
     assert.equal(get().length, 0, "no manifest should be uploaded if backup fails");
+  });
+
+  describe("buildTargetPostgresUri", () => {
+    it("preserves SSL and other query parameters when updating database name", () => {
+      const uri = "postgresql://neondb_owner:npg_secret123@ep-young-surf-b4aflbqm.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+      const target = buildTargetPostgresUri({ uri }, "neondb");
+      assert.equal(target, uri);
+
+      const targetOther = buildTargetPostgresUri({ uri }, "another_db");
+      assert.equal(
+        targetOther,
+        "postgresql://neondb_owner:npg_secret123@ep-young-surf-b4aflbqm.c-6.us-east-2.aws.neon.tech/another_db?sslmode=require&channel_binding=require"
+      );
+    });
+
+    it("adds postgresql scheme if missing and preserves search params", () => {
+      const uri = "user:pass@host:5432/original_db?sslmode=require";
+      const target = buildTargetPostgresUri({ uri }, "target_db");
+      assert.equal(target, "postgresql://user:pass@host:5432/target_db?sslmode=require");
+    });
+
+    it("serializes discrete options with SSL when provided", () => {
+      const target = buildTargetPostgresUri(
+        {
+          host: "db.staging.internal",
+          port: 5432,
+          user: "pguser",
+          password: "pgpassword",
+          ssl: "require",
+        },
+        "prod_backup"
+      );
+      assert.equal(
+        target,
+        "postgresql://pguser:pgpassword@db.staging.internal:5432/prod_backup?sslmode=require"
+      );
+    });
+
+    it("serializes discrete options without SSL when not requested", () => {
+      const target = buildTargetPostgresUri(
+        {
+          host: "localhost",
+          port: 5432,
+          user: "postgres",
+        },
+        "local_db"
+      );
+      assert.equal(target, "postgresql://postgres@localhost:5432/local_db");
+    });
   });
 });

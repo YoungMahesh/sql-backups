@@ -15,6 +15,7 @@ export interface PostgresConnectionConfig {
   user?: string;
   password?: string;
   database?: string;
+  ssl?: boolean | "require" | "prefer" | "allow" | "verify-full";
 }
 
 export function parsePostgresErrorMessage(err: unknown): string {
@@ -39,8 +40,16 @@ export function parsePostgresErrorMessage(err: unknown): string {
   ) {
     return "Password authentication failed. Please check your username and password.";
   }
+  if (
+    errorObj.message &&
+    (errorObj.message.toLowerCase().includes("ssl") ||
+      errorObj.message.toLowerCase().includes("insecure") ||
+      errorObj.message.toLowerCase().includes("sslmode"))
+  ) {
+    return errorObj.message;
+  }
   if (errorObj.code === "28000") {
-    return "Invalid authorization specification. Please verify user credentials.";
+    return errorObj.message || "Invalid authorization specification. Please verify user credentials.";
   }
   if (errorObj.code === "3D000") {
     return "Target database does not exist on this server.";
@@ -59,6 +68,7 @@ export function resolvePostgresUri(config: {
   user?: string;
   password?: string;
   database?: string;
+  ssl?: boolean | string;
 }): {
   uri: string;
   host: string;
@@ -94,6 +104,7 @@ export function resolvePostgresUri(config: {
     user,
     password,
     database: database || "postgres", // PostgreSQL requires a database to connect; default to postgres
+    ssl: config.ssl,
   });
 
   return {

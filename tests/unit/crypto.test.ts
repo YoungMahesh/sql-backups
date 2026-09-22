@@ -93,3 +93,41 @@ test("parseConnectionString parses PostgreSQL URI properly", () => {
   assert.equal(parsed.database, "customers");
 });
 
+test("parseConnectionString preserves query search and parses sslmode", () => {
+  const parsed = parseConnectionString(
+    "postgresql://neondb_owner:secret@ep-young.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+  );
+  assert.equal(parsed.engine, "postgres");
+  assert.equal(parsed.host, "ep-young.aws.neon.tech");
+  assert.equal(parsed.database, "neondb");
+  assert.equal(parsed.search, "?sslmode=require&channel_binding=require");
+  assert.equal(parsed.ssl, "require");
+});
+
+test("serializeToConnectionString appends search or ssl parameters", () => {
+  const uriWithSsl = serializeToConnectionString({
+    engine: "postgres",
+    host: "ep-young.aws.neon.tech",
+    user: "neondb_owner",
+    password: "secret",
+    database: "neondb",
+    ssl: "require",
+  });
+  assert.equal(
+    uriWithSsl,
+    "postgresql://neondb_owner:secret@ep-young.aws.neon.tech:5432/neondb?sslmode=require"
+  );
+
+  const uriWithSearch = serializeToConnectionString({
+    engine: "postgres",
+    host: "ep-young.aws.neon.tech",
+    user: "neondb_owner",
+    database: "neondb",
+    search: "?sslmode=require&channel_binding=require",
+  });
+  assert.equal(
+    uriWithSearch,
+    "postgresql://neondb_owner@ep-young.aws.neon.tech:5432/neondb?sslmode=require&channel_binding=require"
+  );
+});
+

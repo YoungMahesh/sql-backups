@@ -206,6 +206,7 @@ export async function backupDatabaseToS3(options: BackupDatabaseOptions): Promis
     const manifestSink = options.manifestSink ?? defaultManifestSink;
 
     uploadPromise = uploadBackupStream(s3Key, uploadPipeline);
+    uploadPromise.catch(() => {});
 
     // Handle pipeline errors so upload promise fails rather than hangs
     passThrough.on("error", (err) => {

@@ -16,6 +16,22 @@ describe("PostgreSQL Connection Helpers Unit Tests", () => {
     ).toContain("Password authentication failed");
     expect(parsePostgresErrorMessage({ code: "3D000" })).toContain("Target database does not exist");
     expect(parsePostgresErrorMessage({ code: "EHOSTUNREACH" })).toContain("Host unreachable");
+    expect(
+      parsePostgresErrorMessage({
+        code: "28000",
+        message: "connection is insecure (try using `sslmode=require`)",
+      })
+    ).toBe("connection is insecure (try using `sslmode=require`)");
+    expect(
+      parsePostgresErrorMessage({
+        code: "28000",
+      })
+    ).toBe("Invalid authorization specification. Please verify user credentials.");
+    expect(
+      parsePostgresErrorMessage({
+        message: "server does not support SSL, but SSL was required",
+      })
+    ).toBe("server does not support SSL, but SSL was required");
     expect(parsePostgresErrorMessage(new Error("Custom error"))).toBe("Custom error");
   });
 

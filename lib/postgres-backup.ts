@@ -7,7 +7,7 @@ import {
   type BackupManifest,
   type BackupManifestTableEntry,
 } from "./manifest";
-import { parseConnectionString, serializeToConnectionString } from "./crypto";
+import { serializeToConnectionString } from "./crypto";
 
 export const POSTGRES_SYSTEM_DATABASES = new Set([
   "postgres",
@@ -99,6 +99,7 @@ export interface PostgresBackupConnectionOptions {
   port?: number | string;
   user?: string;
   password?: string;
+  ssl?: boolean | "require" | "prefer" | "allow" | "verify-full" | object;
 }
 
 export interface PostgresBackupOptions {
@@ -263,8 +264,46 @@ interface ViewRecord {
 }
 
 /**
- * Connects to a PostgreSQL database, exports schemas, tables, and rows as SQL,
- * compresses on the fly with Gzip, and streams directly into S3 with backpressure handling.
+ * Builds the target PostgreSQL connection URI for a backup job,
+ * preserving any query parameters (such as sslmode=require, channel_binding, etc.)
+ * while setting the target database pathname.
+ */
+export function buildTargetPostgresUri(
+  connectionOptions: PostgresBackupConnectionOptions,
+  databaseName: string
+): string {
+  if (connectionOptions.uri?.trim()) {
+    let uri = connectionOptions.uri.trim();
+    if (!uri.startsWith("postgresql://") && !uri.startsWith("postgres://")) {
+      uri = `postgresql://${uri}`;
+    }
+    const url = new URL(uri);
+    url.pathname = `/${encodeURIComponent(databaseName)}`;
+    if (connectionOptions.ssl && !url.searchParams.has("sslmode") && !url.searchParams.has("ssl")) {
+      const mode = typeof connectionOptions.ssl === "string" ? connectionOptions.ssl : "require";
+      url.searchParams.set("sslmode", mode);
+    }
+    return url.toString();
+  }
+
+  return serializeToConnectionString({
+    engine: "postgres",
+    host: connectionOptions.host || "localhost",
+    port: connectionOptions.port ? Number(connectionOptions.port) : 5432,
+    user: connectionOptions.user || "postgres",
+    password: connectionOptions.password || "",
+    database: databaseName,
+    ssl: connectionOptions.ssl
+      ? typeof connectionOptions.ssl === "string"
+        ? connectionOptions.ssl
+        : "require"
+      : undefined,
+  });
+}
+
+/**
+ * Connects to a PostgreSQL database, exports schema and data as SQL, compresses on the fly with Gzip,
+ * and streams directly into S3 with true row streaming and backpressure handling.
  */
 export async function backupPostgresDatabaseToS3(
   options: PostgresBackupOptions
@@ -293,32 +332,13 @@ export async function backupPostgresDatabaseToS3(
     if (options.sql) {
       sql = options.sql;
     } else {
-      let targetUri: string;
-      if (connectionOptions.uri) {
-        const parsed = parseConnectionString(connectionOptions.uri);
-        targetUri = serializeToConnectionString({
-          engine: "postgres",
-          host: parsed.host,
-          port: parsed.port || 5432,
-          user: parsed.user || "postgres",
-          password: parsed.password || "",
-          database: databaseName,
-        });
-      } else {
-        targetUri = serializeToConnectionString({
-          engine: "postgres",
-          host: connectionOptions.host || "localhost",
-          port: connectionOptions.port ? Number(connectionOptions.port) : 5432,
-          user: connectionOptions.user || "postgres",
-          password: connectionOptions.password || "",
-          database: databaseName,
-        });
-      }
+      const targetUri = buildTargetPostgresUri(connectionOptions, databaseName);
 
       sql = postgres(targetUri, {
         connect_timeout: 15,
         max: 2,
         idle_timeout: 10,
+        ...(connectionOptions.ssl ? { ssl: connectionOptions.ssl } : {}),
       });
     }
 
@@ -346,6 +366,7 @@ export async function backupPostgresDatabaseToS3(
     const manifestSink = options.manifestSink ?? defaultManifestSink;
 
     uploadPromise = uploadBackupStream(s3Key, uploadPipeline);
+    uploadPromise.catch(() => {});
 
     // Handle pipeline errors so upload promise fails rather than hangs
     passThrough.on("error", (err) => {
