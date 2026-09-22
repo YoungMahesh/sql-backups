@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "dotenvx run -- tsx --test lib/*.test.ts",
+    "test": "dotenvx run -- vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "dotenvx run -- vitest run --project integration",
+    "test:watch": "dotenvx run -- vitest",
     "db-generate": "dotenvx run -- drizzle-kit generate",
     "db-migrate": "dotenvx run -- drizzle-kit migrate"
   },
@@ -36,7 +39,8 @@
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.1"
   },
   "packageManager": "pnpm@10.31.0+sha256.6f61ced1a27558d13cdf52008f2bb302a03638ff09dd236562a97f0ac59d37c3"
 }

@@ -1,6 +1,6 @@
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
-import { generateBackupS3Key, formatBytes } from "./s3";
+import { generateBackupS3Key, formatBytes } from "@/lib/s3";
 
 describe("S3 Backup Helpers", () => {
   describe("generateBackupS3Key", () => {

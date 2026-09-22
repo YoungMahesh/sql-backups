@@ -1,6 +1,6 @@
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
-import { formatBytes, formatRelativeTime, formatRowCount } from "./format";
+import { formatBytes, formatRelativeTime, formatRowCount } from "@/lib/format";
 
 describe("format", () => {
   describe("formatBytes", () => {

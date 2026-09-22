@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import {
   encrypt,
@@ -6,7 +6,7 @@ import {
   maskConnectionString,
   serializeToConnectionString,
   parseConnectionString,
-} from "./crypto";
+} from "@/lib/crypto";
 
 test("encrypt and decrypt roundtrip", () => {
   const original = "mysql://admin:supersecret@db.example.com:3306/production";

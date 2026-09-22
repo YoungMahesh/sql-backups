@@ -1,6 +1,6 @@
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
-import { isValidCronExpression, nextRunAt, isValidTimeZone } from "./cron";
+import { isValidCronExpression, nextRunAt, isValidTimeZone } from "@/lib/cron";
 
 describe("cron helpers", () => {
   describe("isValidCronExpression", () => {

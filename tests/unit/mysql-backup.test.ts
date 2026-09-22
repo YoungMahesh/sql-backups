@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { describe, it, vi } from "vitest";
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import {
@@ -7,8 +7,20 @@ import {
   formatInsertStatement,
   backupDatabaseToS3,
   type BackupDatabaseOptions,
-} from "./mysql-backup";
-import type { BackupManifest } from "./manifest";
+} from "@/lib/mysql-backup";
+import type { BackupManifest } from "@/lib/manifest";
+
+vi.mock("@/lib/s3", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/s3")>();
+  return {
+    ...actual,
+    uploadBackupStream: vi.fn().mockImplementation(async (_key: string, stream: AsyncIterable<Buffer>) => {
+      for await (const chunk of stream) {
+        void chunk;
+      }
+    }),
+  };
+});
 
 describe("MySQL Backup Helpers", () => {
   describe("escapeIdentifier", () => {

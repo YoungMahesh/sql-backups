@@ -1,7 +1,7 @@
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
-import { validateScheduleInput } from "./schedule-validation";
-import { SYSTEM_DATABASES } from "./mysql-backup";
+import { validateScheduleInput } from "@/lib/schedule-validation";
+import { SYSTEM_DATABASES } from "@/lib/mysql-backup";
 
 describe("validateScheduleInput", () => {
   const validInput = {

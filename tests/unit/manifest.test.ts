@@ -1,11 +1,11 @@
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 import {
   deriveManifestKey,
   formatManifest,
   parseManifest,
   type BackupManifest,
-} from "./manifest";
+} from "@/lib/manifest";
 
 describe("manifest", () => {
   describe("deriveManifestKey", () => {

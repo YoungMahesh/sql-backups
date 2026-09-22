@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 import { Readable } from "node:stream";
 import zlib from "node:zlib";
@@ -6,8 +6,8 @@ import { promisify } from "node:util";
 import {
   escapeIdentifier,
   formatInsertStatement,
-} from "./mysql-backup";
-import { extractTableSchema, extractTableRows } from "./backup-parser";
+} from "@/lib/mysql-backup";
+import { extractTableSchema, extractTableRows } from "@/lib/backup-parser";
 
 const gzip = promisify(zlib.gzip);
 
