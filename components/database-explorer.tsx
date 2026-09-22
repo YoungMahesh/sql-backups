@@ -386,7 +386,11 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
         );
       }
 
-      setActiveConnection(payload);
+      const connPayload: ActiveConnectionState = {
+        ...payload,
+        savedConnectionId: data.savedConnectionId || payload.savedConnectionId,
+      };
+      setActiveConnection(connPayload);
       handleConnectionSuccess(data);
     } catch (err: unknown) {
       const message =
@@ -445,7 +449,11 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
       }
 
       setEngine(connEngine);
-      setActiveConnection(payload);
+      const connPayload: ActiveConnectionState = {
+        ...payload,
+        savedConnectionId: data.savedConnectionId || id,
+      };
+      setActiveConnection(connPayload);
       handleConnectionSuccess(data);
     } catch (err: unknown) {
       const message =
@@ -1404,22 +1412,160 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                   </div>
                 </div>
 
-                {activeConnection?.mode === "saved" && activeConnection.savedConnectionId && (
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                   <button
                     type="button"
-                    onClick={() => {
-                      setScheduleTargetDb(databases[0] || sqliteDatabase || "main");
-                      setScheduleModalOpen(true);
-                    }}
-                    className="flex items-center gap-1.5 self-start sm:self-auto rounded-md border border-hairline bg-canvas px-3 py-1.5 text-xs font-medium text-body shadow-2xs transition hover:bg-surface-soft hover:text-ink"
+                    onClick={() => handleBackup(databases[0] || sqliteDatabase || "main")}
+                    disabled={backingUpDb !== null}
+                    title={`Backup ${databases[0] || sqliteDatabase || "main"} to S3`}
+                    className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-on-primary shadow-xs transition hover:bg-primary-active disabled:opacity-50"
                   >
-                    <svg className="h-3.5 w-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                      <circle cx="12" cy="12" r="9" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 2" />
-                    </svg>
-                    <span>Schedule Backups</span>
+                    {backingUpDb === (databases[0] || sqliteDatabase || "main") ? (
+                      <>
+                        <svg className="h-3.5 w-3.5 animate-spin text-on-primary" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Backing up...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-3.5 w-3.5 text-on-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        <span>Backup</span>
+                      </>
+                    )}
                   </button>
-                )}
+                  {((activeConnection?.mode === "saved" && activeConnection.savedConnectionId) || activeConnection?.savedConnectionId) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScheduleTargetDb(databases[0] || sqliteDatabase || "main");
+                        setScheduleModalOpen(true);
+                      }}
+                      disabled={backingUpDb !== null}
+                      title={`Schedule recurring backups of ${databases[0] || sqliteDatabase || "main"}`}
+                      className="flex items-center gap-1.5 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-xs font-medium text-body shadow-2xs transition hover:bg-surface-soft hover:text-ink disabled:opacity-50"
+                    >
+                      <svg className="h-3.5 w-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                        <circle cx="12" cy="12" r="9" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 2" />
+                      </svg>
+                      <span>Schedule</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Backup Notifications */}
+              {backupSuccess && (
+                <div className="mt-4 flex items-center justify-between rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 shrink-0 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>{backupSuccess.message}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBackupSuccess(null)}
+                    className="text-success hover:opacity-80 font-bold ml-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {backupError && (
+                <div className="mt-4 flex items-center justify-between rounded-lg border border-error/30 bg-error/10 p-3 text-xs text-error">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 shrink-0 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                      <line x1="12" y1="8" x2="12" y2="12" strokeWidth="2" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2" />
+                    </svg>
+                    <span>{backupError.message}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBackupError(null)}
+                    className="text-error hover:opacity-80 font-bold ml-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {/* Target Database Summary Card */}
+              <div className="mt-4 flex items-center justify-between rounded-lg border border-hairline bg-canvas p-3.5 transition hover:border-primary/40 hover:shadow-2xs">
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-cream-strong border border-hairline text-primary">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <ellipse cx="12" cy="5" rx="9" ry="3" />
+                      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate font-mono text-sm font-semibold text-ink" title={databases[0] || sqliteDatabase || "main"}>
+                        {databases[0] || sqliteDatabase || "main"}
+                      </p>
+                      <span className="inline-flex items-center rounded-md border border-hairline bg-surface-soft px-1.5 py-0.5 font-mono text-[10px] text-muted">
+                        database
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted truncate">
+                      SQLite / libSQL Database • {sqliteTables.length} {sqliteTables.length === 1 ? "table" : "tables"} discovered ({totalSqliteRows.toLocaleString()} {totalSqliteRows === 1 ? "row" : "rows"})
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleBackup(databases[0] || sqliteDatabase || "main")}
+                    disabled={backingUpDb !== null}
+                    title={`Backup ${databases[0] || sqliteDatabase || "main"} to S3`}
+                    className="flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-on-primary shadow-xs transition hover:bg-primary-active disabled:opacity-50"
+                  >
+                    {backingUpDb === (databases[0] || sqliteDatabase || "main") ? (
+                      <>
+                        <svg className="h-3.5 w-3.5 animate-spin text-on-primary" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Backing up...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-3.5 w-3.5 text-on-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        <span>Backup</span>
+                      </>
+                    )}
+                  </button>
+                  {((activeConnection?.mode === "saved" && activeConnection.savedConnectionId) || activeConnection?.savedConnectionId) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScheduleTargetDb(databases[0] || sqliteDatabase || "main");
+                        setScheduleModalOpen(true);
+                      }}
+                      disabled={backingUpDb !== null}
+                      title={`Schedule recurring backups of ${databases[0] || sqliteDatabase || "main"}`}
+                      className="flex items-center gap-1.5 rounded-md border border-hairline bg-canvas px-2.5 py-1.5 text-xs font-medium text-body shadow-2xs transition hover:bg-surface-soft hover:text-ink disabled:opacity-50"
+                    >
+                      <svg className="h-3.5 w-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                        <circle cx="12" cy="12" r="9" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 2" />
+                      </svg>
+                      <span>Schedule</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Search Box */}
@@ -1676,7 +1822,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                                 </>
                               )}
                             </button>
-                            {activeConnection?.mode === "saved" && activeConnection.savedConnectionId && (
+                            {((activeConnection?.mode === "saved" && activeConnection.savedConnectionId) || activeConnection?.savedConnectionId) && (
                               <button
                                 type="button"
                                 onClick={() => {

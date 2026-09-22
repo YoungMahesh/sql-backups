@@ -253,7 +253,10 @@ export async function POST(req: Request) {
       (db) => !SYSTEM_DATABASES.has(db.toLowerCase())
     );
 
-    // Automatically store / update saved connection upon successful connection
+    let effectiveSavedConnectionId =
+      body.mode === "saved" ? body.savedConnectionId : undefined;
+
+    // Persist or update saved connection upon successful connection
     if (body.mode === "saved" && body.savedConnectionId) {
       try {
         await db
@@ -288,6 +291,7 @@ export async function POST(req: Request) {
         const now = new Date();
 
         if (existing) {
+          effectiveSavedConnectionId = existing.id;
           await db
             .update(savedConnection)
             .set({
@@ -298,8 +302,10 @@ export async function POST(req: Request) {
             })
             .where(eq(savedConnection.id, existing.id));
         } else {
+          const newId = crypto.randomUUID();
+          effectiveSavedConnectionId = newId;
           await db.insert(savedConnection).values({
-            id: crypto.randomUUID(),
+            id: newId,
             userId: session.user.id,
             host: displayHost,
             port: displayPort,
@@ -320,6 +326,7 @@ export async function POST(req: Request) {
       success: true,
       databases,
       count: databases.length,
+      savedConnectionId: effectiveSavedConnectionId,
       serverInfo: {
         host: displayHost,
         port: displayPort,

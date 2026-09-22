@@ -148,6 +148,9 @@ export async function POST(req: Request) {
 
     const finalDatabaseName = targetDatabase || database || "main";
 
+    let effectiveSavedConnectionId =
+      body.mode === "saved" ? body.savedConnectionId : undefined;
+
     // Persist or bump saved connection timestamp
     if (body.mode === "saved" && body.savedConnectionId) {
       try {
@@ -181,6 +184,7 @@ export async function POST(req: Request) {
         const now = new Date();
 
         if (existing) {
+          effectiveSavedConnectionId = existing.id;
           await db
             .update(savedConnection)
             .set({
@@ -193,8 +197,10 @@ export async function POST(req: Request) {
             })
             .where(eq(savedConnection.id, existing.id));
         } else {
+          const newId = crypto.randomUUID();
+          effectiveSavedConnectionId = newId;
           await db.insert(savedConnection).values({
-            id: crypto.randomUUID(),
+            id: newId,
             userId: session.user.id,
             host: displayHost,
             port: displayPort,
@@ -217,6 +223,7 @@ export async function POST(req: Request) {
       database: finalDatabaseName,
       tables,
       count: 1,
+      savedConnectionId: effectiveSavedConnectionId,
       serverInfo: {
         host: displayHost,
         port: displayPort,

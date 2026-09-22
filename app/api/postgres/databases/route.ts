@@ -169,6 +169,9 @@ export async function POST(req: Request) {
     // Connect to PostgreSQL and fetch user databases (excluding postgres, template0, template1)
     const { databases, version } = await listPostgresUserDatabases(canonicalUri);
 
+    let effectiveSavedConnectionId =
+      body.mode === "saved" ? body.savedConnectionId : undefined;
+
     // Persist or update saved connection upon successful connection
     if (body.mode === "saved" && body.savedConnectionId) {
       try {
@@ -204,6 +207,7 @@ export async function POST(req: Request) {
         const now = new Date();
 
         if (existing) {
+          effectiveSavedConnectionId = existing.id;
           await db
             .update(savedConnection)
             .set({
@@ -214,8 +218,10 @@ export async function POST(req: Request) {
             })
             .where(eq(savedConnection.id, existing.id));
         } else {
+          const newId = crypto.randomUUID();
+          effectiveSavedConnectionId = newId;
           await db.insert(savedConnection).values({
-            id: crypto.randomUUID(),
+            id: newId,
             userId: session.user.id,
             host: displayHost,
             port: displayPort,
@@ -236,6 +242,7 @@ export async function POST(req: Request) {
       success: true,
       databases,
       count: databases.length,
+      savedConnectionId: effectiveSavedConnectionId,
       serverInfo: {
         host: displayHost,
         port: displayPort,
