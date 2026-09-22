@@ -1,17 +1,17 @@
 import { relations } from "drizzle-orm/_relations";
 import {
-  mysqlTable,
+  pgTable,
   varchar,
-  int,
+  integer,
   boolean,
   timestamp,
   index,
   uniqueIndex,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { savedConnection } from "./saved-connection";
 
-export const backupSchedule = mysqlTable(
+export const backupSchedule = pgTable(
   "backup_schedule",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -24,12 +24,12 @@ export const backupSchedule = mysqlTable(
     databaseName: varchar("database_name", { length: 255 }).notNull(),
     cronExpression: varchar("cron_expression", { length: 100 }).notNull(),
     timezone: varchar("timezone", { length: 64 }).notNull(),
-    retentionCount: int("retention_count").default(7).notNull(),
+    retentionCount: integer("retention_count").default(7).notNull(),
     enabled: boolean("enabled").default(true).notNull(),
-    lastRunAt: timestamp("last_run_at", { fsp: 3 }),
-    nextRunAt: timestamp("next_run_at", { fsp: 3 }),
-    createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { fsp: 3 })
+    lastRunAt: timestamp("last_run_at", { withTimezone: true, mode: "date" }),
+    nextRunAt: timestamp("next_run_at", { withTimezone: true, mode: "date" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),

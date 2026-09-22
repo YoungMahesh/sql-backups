@@ -1,15 +1,15 @@
 import { relations } from "drizzle-orm/_relations";
 import {
-  mysqlTable,
+  pgTable,
   varchar,
   text,
-  int,
+  integer,
   timestamp,
   index,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
-export const savedConnection = mysqlTable(
+export const savedConnection = pgTable(
   "saved_connection",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -17,12 +17,12 @@ export const savedConnection = mysqlTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     host: varchar("host", { length: 255 }).notNull(),
-    port: int("port").default(3306).notNull(),
+    port: integer("port").default(3306).notNull(),
     username: varchar("username", { length: 255 }).notNull(),
     database: varchar("database", { length: 255 }),
     encryptedConnectionString: text("encrypted_connection_string").notNull(),
-    createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { fsp: 3 })
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),

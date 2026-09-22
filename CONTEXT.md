@@ -4,6 +4,14 @@ A web application to connect to, inspect, and manage MySQL database instances.
 
 ## Language
 
+**Application Database**:
+The internal PostgreSQL database powering DB Manage, persisting user accounts, authentication sessions, encrypted saved connections, backup schedules, and run history.
+_Avoid_: Metadata DB, Internal DB, Config DB
+
+**Target Database**:
+An external MySQL database instance connected to, inspected, and backed up via DB Manage.
+_Avoid_: Remote DB, External DB, Monitored DB
+
 **User Database**:
 A custom database created for application data on a MySQL server, excluding internal server schemas.
 _Avoid_: Custom DB, App DB, Schema

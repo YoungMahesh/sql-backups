@@ -1,15 +1,15 @@
 import { relations } from "drizzle-orm/_relations";
 import {
-  mysqlTable,
+  pgTable,
   varchar,
-  int,
+  integer,
   bigint,
   timestamp,
   index,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
-export const databaseBackup = mysqlTable(
+export const databaseBackup = pgTable(
   "database_backup",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -18,10 +18,10 @@ export const databaseBackup = mysqlTable(
       .references(() => user.id, { onDelete: "cascade" }),
     databaseName: varchar("database_name", { length: 255 }).notNull(),
     host: varchar("host", { length: 255 }).notNull(),
-    port: int("port").default(3306).notNull(),
+    port: integer("port").default(3306).notNull(),
     s3Key: varchar("s3_key", { length: 512 }).notNull(),
     sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
-    createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   },
   (table) => [
     index("database_backup_userId_idx").on(table.userId),

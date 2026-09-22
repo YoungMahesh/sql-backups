@@ -10,7 +10,7 @@
 # Tech stack
 
 - Authentication: [better-auth](https://better-auth.com/docs/basic-usage)
-- Database: MySQL with [drizzle-orm](https://orm.drizzle.team/docs/overview)
+- Database: PostgreSQL with [drizzle-orm](https://orm.drizzle.team/docs/overview)
 - Object Storage: [SeaweedFS](https://github.com/seaweedfs/seaweedfs) (S3-compatible storage)
 
 ## Agent skills
