@@ -44,3 +44,11 @@ _Avoid_: Backup Attempt, Job Execution, Backup History Entry
 A small JSON document captured at backup time alongside a Database Backup, listing the dump's base tables with their row counts and the total uncompressed dump size. Stored as a sibling object in object storage under the same key prefix as the `.sql.gz`, and consumed by the inspector to list tables and gate the raw-view size guardrail without re-parsing the dump.
 _Avoid_: Backup Index, Backup Summary, Dump Catalog, Sidecar JSON
 
+**Public Surface**:
+The public-facing landing page at `/` introducing supported Database Engines, streaming backups, companion Backup Manifests, and automated scheduling before authentication.
+_Avoid_: Marketing Page, Home, Front Page, Splash Screen
+
+**Application Workspace**:
+The authenticated control plane at `/dashboard` where users manage Saved Connections, trigger manual and scheduled Database Backups, and inspect schemas.
+_Avoid_: Dashboard Screen, User Portal, Console, Admin Panel
+
