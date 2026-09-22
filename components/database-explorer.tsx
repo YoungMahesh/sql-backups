@@ -377,29 +377,29 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
       {!isConnected ? (
         <div className="space-y-6">
           {/* Connection Form Card */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-100 pb-5">
+          <div className="rounded-xl border border-hairline bg-surface-card p-6 shadow-2xs sm:p-8">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-hairline pb-5">
               <div>
-                <h2 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
+                <h2 className="font-serif text-xl sm:text-2xl font-normal tracking-tight text-ink">
                   Connect to MySQL Server
                 </h2>
-                <p className="mt-1 text-sm text-zinc-500">
+                <p className="mt-1 text-sm text-muted">
                   Connect via 4 individual parameters or paste a single connection string.
                 </p>
               </div>
 
               {/* Mode Selector Tabs */}
-              <div className="flex rounded-xl bg-zinc-100 p-1">
+              <div className="flex rounded-lg border border-hairline bg-surface-soft p-1">
                 <button
                   type="button"
                   onClick={() => {
                     setConnectMode("params");
                     setConnectError(null);
                   }}
-                  className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                  className={`rounded-md px-3.5 py-1.5 text-xs font-medium transition ${
                     connectMode === "params"
-                      ? "bg-white text-zinc-900 shadow-sm"
-                      : "text-zinc-600 hover:text-zinc-900"
+                      ? "bg-canvas text-ink border border-hairline shadow-xs font-semibold"
+                      : "text-muted hover:text-ink"
                   }`}
                 >
                   4 Server Fields
@@ -410,10 +410,10 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                     setConnectMode("uri");
                     setConnectError(null);
                   }}
-                  className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                  className={`rounded-md px-3.5 py-1.5 text-xs font-medium transition ${
                     connectMode === "uri"
-                      ? "bg-white text-zinc-900 shadow-sm"
-                      : "text-zinc-600 hover:text-zinc-900"
+                      ? "bg-canvas text-ink border border-hairline shadow-xs font-semibold"
+                      : "text-muted hover:text-ink"
                   }`}
                 >
                   Connection String
@@ -423,9 +423,9 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
 
             {/* Error Message */}
             {connectError && (
-              <div className="mb-6 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50/70 p-4 text-sm text-rose-800">
+              <div className="mb-6 flex items-start gap-3 rounded-lg border border-error/20 bg-error/10 p-4 text-sm text-error">
                 <svg
-                  className="mt-0.5 h-5 w-5 shrink-0 text-rose-600"
+                  className="mt-0.5 h-5 w-5 shrink-0 text-error"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -449,9 +449,9 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                   <div className="sm:col-span-2 md:col-span-1">
                     <label
                       htmlFor="mysql-host"
-                      className="block text-xs font-semibold uppercase tracking-wider text-zinc-700"
+                      className="block text-xs font-semibold uppercase tracking-wider text-body"
                     >
-                      Server Path / Host <span className="text-rose-500">*</span>
+                      Server Path / Host <span className="text-primary">*</span>
                     </label>
                     <div className="mt-1.5">
                       <input
@@ -461,17 +461,17 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                         value={host}
                         onChange={(e) => setHost(e.target.value)}
                         placeholder="localhost or 127.0.0.1"
-                        className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                        className="block w-full rounded-md border border-hairline bg-canvas px-3.5 py-2.5 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:bg-canvas focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
-                    <p className="mt-1 text-[11px] text-zinc-400">Hostname, domain, or IP address</p>
+                    <p className="mt-1 text-[11px] text-muted-soft">Hostname, domain, or IP address</p>
                   </div>
 
                   {/* Server Port */}
                   <div className="sm:col-span-2 md:col-span-1">
                     <label
                       htmlFor="mysql-port"
-                      className="block text-xs font-semibold uppercase tracking-wider text-zinc-700"
+                      className="block text-xs font-semibold uppercase tracking-wider text-body"
                     >
                       Server Port
                     </label>
@@ -482,19 +482,19 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                         value={port}
                         onChange={(e) => setPort(e.target.value)}
                         placeholder="3306"
-                        className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                        className="block w-full rounded-md border border-hairline bg-canvas px-3.5 py-2.5 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:bg-canvas focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
-                    <p className="mt-1 text-[11px] text-zinc-400">Default MySQL port is 3306</p>
+                    <p className="mt-1 text-[11px] text-muted-soft">Default MySQL port is 3306</p>
                   </div>
 
                   {/* Username */}
                   <div>
                     <label
                       htmlFor="mysql-user"
-                      className="block text-xs font-semibold uppercase tracking-wider text-zinc-700"
+                      className="block text-xs font-semibold uppercase tracking-wider text-body"
                     >
-                      Username <span className="text-rose-500">*</span>
+                      Username <span className="text-primary">*</span>
                     </label>
                     <div className="mt-1.5">
                       <input
@@ -504,7 +504,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                         value={user}
                         onChange={(e) => setUser(e.target.value)}
                         placeholder="root"
-                        className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                        className="block w-full rounded-md border border-hairline bg-canvas px-3.5 py-2.5 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:bg-canvas focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
                   </div>
@@ -514,7 +514,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                     <div className="flex items-center justify-between">
                       <label
                         htmlFor="mysql-password"
-                        className="block text-xs font-semibold uppercase tracking-wider text-zinc-700"
+                        className="block text-xs font-semibold uppercase tracking-wider text-body"
                       >
                         Password
                       </label>
@@ -525,13 +525,13 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Server password"
-                        className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                        placeholder="Leave blank if no password"
+                        className="block w-full rounded-md border border-hairline bg-canvas px-3.5 py-2.5 pr-10 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:bg-canvas focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600"
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted hover:text-ink"
                         tabIndex={-1}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
@@ -551,43 +551,44 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                   </div>
                 </div>
               ) : (
+                /* Single Connection String */
                 <div>
                   <label
-                    htmlFor="mysql-uri"
-                    className="block text-xs font-semibold uppercase tracking-wider text-zinc-700"
+                    htmlFor="mysql-connection-string"
+                    className="block text-xs font-semibold uppercase tracking-wider text-body"
                   >
-                    MySQL Connection String <span className="text-rose-500">*</span>
+                    MySQL Connection String <span className="text-primary">*</span>
                   </label>
                   <div className="mt-1.5">
                     <input
-                      id="mysql-uri"
+                      id="mysql-connection-string"
                       type="text"
                       required
                       value={connectionString}
                       onChange={(e) => setConnectionString(e.target.value)}
-                      placeholder="mysql://user:password@localhost:3306"
-                      className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 px-3.5 py-2.5 font-mono text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                      placeholder="mysql://user:password@localhost:3306/database"
+                      className="block w-full rounded-md border border-hairline bg-canvas px-3.5 py-2.5 font-mono text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:bg-canvas focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
-                  <p className="mt-1.5 text-xs text-zinc-500">
-                    Format: <code className="font-mono text-zinc-700">mysql://username:password@host:port/database</code> (database name is optional)
+                  <p className="mt-1.5 text-xs text-muted">
+                    Format: <code className="font-mono text-body">mysql://username:password@host:port/database</code> (database name is optional)
                   </p>
                 </div>
               )}
 
-              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-zinc-100">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-hairline">
                 <button
                   type="button"
                   onClick={handleClear}
                   disabled={isConnecting}
-                  className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900 focus-visible:outline-2"
+                  className="rounded-md border border-hairline bg-canvas px-4 py-2 text-sm font-medium text-body transition hover:bg-surface-soft hover:text-ink focus-visible:outline-2"
                 >
                   Clear
                 </button>
                 <button
                   type="submit"
                   disabled={isConnecting}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:opacity-60"
+                  className="flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-on-primary shadow-xs transition hover:bg-primary-active focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
                 >
                   {isConnecting && !connectingId ? (
                     <>
@@ -611,24 +612,24 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
           </div>
 
           {/* Saved Connections Section */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="mb-5 flex items-center justify-between border-b border-zinc-100 pb-4">
+          <div className="rounded-xl border border-hairline bg-surface-card p-6 shadow-2xs sm:p-8">
+            <div className="mb-5 flex items-center justify-between border-b border-hairline pb-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-cream-strong border border-hairline text-ink">
+                  <svg className="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                   </svg>
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-zinc-900">
+                    <h3 className="font-serif text-lg font-normal text-ink">
                       Saved Connections
                     </h3>
-                    <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-700">
+                    <span className="inline-flex items-center rounded-full bg-surface-cream-strong border border-hairline px-2 py-0.5 text-xs font-semibold text-body-strong">
                       {savedConnections.length}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted">
                     Previously used MySQL server configurations. Stored encrypted at rest.
                   </p>
                 </div>
@@ -639,7 +640,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                 onClick={fetchSavedConnections}
                 disabled={isLoadingConnections}
                 title="Refresh saved connections"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900 disabled:opacity-50"
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-hairline bg-canvas text-body transition hover:bg-surface-soft hover:text-ink disabled:opacity-50"
               >
                 <svg
                   className={`h-3.5 w-3.5 ${isLoadingConnections ? "animate-spin" : ""}`}
@@ -655,12 +656,12 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
 
             {/* Error in fetching saved connections */}
             {connectionsError && (
-              <div className="mb-4 flex items-center justify-between rounded-xl bg-rose-50 p-3 text-xs text-rose-700">
+              <div className="mb-4 flex items-center justify-between rounded-lg border border-error/20 bg-error/10 p-3 text-xs text-error">
                 <span>{connectionsError}</span>
                 <button
                   type="button"
                   onClick={fetchSavedConnections}
-                  className="font-semibold underline hover:text-rose-900"
+                  className="font-semibold underline hover:text-error"
                 >
                   Retry
                 </button>
@@ -669,17 +670,17 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
 
             {/* Saved Connections List */}
             {isLoadingConnections && savedConnections.length === 0 ? (
-              <div className="flex items-center justify-center py-8 text-zinc-400">
-                <svg className="h-5 w-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24">
+              <div className="flex items-center justify-center py-8 text-muted">
+                <svg className="h-5 w-5 animate-spin mr-2 text-primary" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 <span className="text-xs">Loading saved connections...</span>
               </div>
             ) : savedConnections.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-zinc-200 py-8 text-center">
+              <div className="rounded-lg border border-dashed border-hairline py-8 text-center bg-canvas/40">
                 <svg
-                  className="mx-auto h-7 w-7 text-zinc-300"
+                  className="mx-auto h-7 w-7 text-muted-soft"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -687,8 +688,8 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
-                <p className="mt-2 text-xs font-semibold text-zinc-700">No saved connections yet</p>
-                <p className="mt-1 text-[11px] text-zinc-400">
+                <p className="mt-2 text-xs font-semibold text-ink">No saved connections yet</p>
+                <p className="mt-1 text-[11px] text-muted">
                   Whenever you connect to a MySQL server above, it will be automatically saved here for one-click access.
                 </p>
               </div>
@@ -703,28 +704,28 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                   return (
                     <div
                       key={item.id}
-                      className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-zinc-200/80 bg-zinc-50/40 p-3.5 transition hover:border-zinc-300 hover:bg-white hover:shadow-2xs"
+                      className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-hairline bg-canvas p-3.5 transition hover:border-primary/40 hover:shadow-2xs"
                     >
                       {/* Server Details */}
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm text-zinc-900">
+                          <span className="font-semibold text-sm text-ink">
                             {item.host}:{item.port}
                           </span>
-                          <span className="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
+                          <span className="inline-flex items-center rounded-md border border-hairline bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-body">
                             user: {item.username}
                           </span>
                           {item.database && (
-                            <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                            <span className="inline-flex items-center rounded-md border border-success/20 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
                               db: {item.database}
                             </span>
                           )}
-                          <span className="text-[11px] text-zinc-400">
+                          <span className="text-[11px] text-muted-soft">
                             • {formatRelativeTime(item.updatedAt)}
                           </span>
                         </div>
 
-                        <p className="font-mono text-xs text-zinc-500 truncate" title={item.maskedUri}>
+                        <p className="font-mono text-xs text-muted truncate" title={item.maskedUri}>
                           {item.maskedUri}
                         </p>
 
@@ -734,22 +735,22 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                       {/* Action Buttons */}
                       <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                         {isConfirmingDelete ? (
-                          <div className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50/60 p-1">
-                            <span className="text-xs text-rose-700 font-medium pl-1">
+                          <div className="flex items-center gap-1.5 rounded-md border border-error/30 bg-error/10 p-1">
+                            <span className="text-xs text-error font-medium pl-1">
                               Delete?
                             </span>
                             <button
                               type="button"
                               onClick={() => handleDeleteConnection(item.id)}
                               disabled={isItemDeleting}
-                              className="rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white shadow-2xs transition hover:bg-rose-700 disabled:opacity-50"
+                              className="rounded bg-error px-2 py-1 text-xs font-semibold text-white shadow-2xs transition hover:opacity-90 disabled:opacity-50"
                             >
                               {isItemDeleting ? "..." : "Confirm"}
                             </button>
                             <button
                               type="button"
                               onClick={() => setConfirmDeleteId(null)}
-                              className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                              className="rounded border border-hairline bg-canvas px-2 py-1 text-xs font-medium text-body hover:bg-surface-soft"
                             >
                               Cancel
                             </button>
@@ -762,15 +763,15 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                               onClick={() => handleFillConnection(item.id)}
                               disabled={isConnecting || isItemFilling}
                               title="Load credentials into form to edit"
-                              className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+                              className="flex items-center gap-1 rounded-md border border-hairline bg-canvas px-2.5 py-1.5 text-xs font-medium text-body shadow-2xs transition hover:bg-surface-soft hover:text-ink disabled:opacity-50"
                             >
                               {isItemFilling ? (
-                                <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <svg className="h-3.5 w-3.5 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
                               ) : (
-                                <svg className="h-3.5 w-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <svg className="h-3.5 w-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                               )}
@@ -782,7 +783,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                               type="button"
                               onClick={() => handleConnectSaved(item.id)}
                               disabled={isConnecting}
-                              className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition hover:bg-zinc-800 disabled:opacity-50"
+                              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-on-primary shadow-2xs transition hover:bg-primary-active disabled:opacity-50"
                             >
                               {isItemConnecting ? (
                                 <>
@@ -808,7 +809,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                               onClick={() => setConfirmDeleteId(item.id)}
                               disabled={isConnecting}
                               title="Delete saved connection"
-                              className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-zinc-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                              className="flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-muted transition hover:border-error/30 hover:bg-error/10 hover:text-error disabled:opacity-50"
                             >
                               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -828,28 +829,28 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
         /* Connected View */
         <div className="space-y-6">
           {/* Server Connection Banner */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-xl border border-success/30 bg-surface-card p-5">
             <div className="flex items-start md:items-center gap-3.5">
               <div className="relative mt-1 md:mt-0 flex h-3 w-3 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-zinc-900">
+                  <span className="text-sm font-semibold text-ink">
                     Connected to {serverInfo?.host}:{serverInfo?.port}
                   </span>
-                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                  <span className="inline-flex items-center rounded-full border border-success/30 bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
                     Active
                   </span>
                   {serverInfo?.version && serverInfo.version !== "Unknown" && (
-                    <span className="inline-flex items-center rounded-full bg-zinc-200/70 px-2 py-0.5 text-xs font-mono text-zinc-700">
+                    <span className="inline-flex items-center rounded-full border border-hairline bg-surface-soft px-2 py-0.5 text-xs font-mono text-body">
                       v{serverInfo.version}
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-xs text-zinc-600">
-                  Logged in as user: <span className="font-mono font-medium text-zinc-900">{serverInfo?.user}</span>
+                <p className="mt-0.5 text-xs text-muted">
+                  Logged in as user: <span className="font-mono font-medium text-ink">{serverInfo?.user}</span>
                 </p>
               </div>
             </div>
@@ -859,7 +860,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                 type="button"
                 onClick={() => handleConnect()}
                 disabled={isConnecting}
-                className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-50"
+                className="flex items-center gap-1.5 rounded-md border border-hairline bg-canvas px-3.5 py-1.5 text-xs font-medium text-body shadow-xs transition hover:bg-surface-soft hover:text-ink"
               >
                 <svg className={`h-3.5 w-3.5 ${isConnecting ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -869,7 +870,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
               <button
                 type="button"
                 onClick={handleDisconnect}
-                className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3.5 py-2 text-xs font-semibold text-rose-700 shadow-sm transition hover:bg-rose-50"
+                className="flex items-center gap-1.5 rounded-md border border-error/30 bg-canvas px-3.5 py-1.5 text-xs font-medium text-error shadow-xs transition hover:bg-error/10"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -880,21 +881,21 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
           </div>
 
           {/* Databases Header & Filters */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between pb-5 border-b border-zinc-100">
+          <div className="rounded-xl border border-hairline bg-surface-card p-6 shadow-2xs">
+            <div className="flex items-center justify-between pb-5 border-b border-hairline">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-cream-strong border border-hairline text-ink">
+                  <svg className="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                     <ellipse cx="12" cy="5" rx="9" ry="3" />
                     <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
                     <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-zinc-900">
+                  <h3 className="font-serif text-lg font-normal text-ink">
                     Databases on Server
                   </h3>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted">
                     Total {databases.length} user database{databases.length === 1 ? "" : "s"} discovered
                   </p>
                 </div>
@@ -904,7 +905,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
             {/* Search Box */}
             <div className="mt-4">
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-400">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-soft">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                     <circle cx="11" cy="11" r="8" />
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -915,13 +916,13 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filter databases by name..."
-                  className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 py-2 pl-9 pr-8 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-9 pr-8 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:bg-canvas focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600"
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-muted hover:text-ink"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -933,9 +934,9 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
 
             {/* Backup Notifications */}
             {backupSuccess && (
-              <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+              <div className="mt-4 flex items-center justify-between rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success">
                 <div className="flex items-center gap-2">
-                  <svg className="h-4 w-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <svg className="h-4 w-4 shrink-0 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                   <span>{backupSuccess.message}</span>
@@ -943,7 +944,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                 <button
                   type="button"
                   onClick={() => setBackupSuccess(null)}
-                  className="text-emerald-700 hover:text-emerald-900 font-bold ml-2"
+                  className="text-success hover:opacity-80 font-bold ml-2"
                 >
                   ✕
                 </button>
@@ -951,9 +952,9 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
             )}
 
             {backupError && (
-              <div className="mt-4 flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              <div className="mt-4 flex items-center justify-between rounded-lg border border-error/30 bg-error/10 p-3 text-xs text-error">
                 <div className="flex items-center gap-2">
-                  <svg className="h-4 w-4 shrink-0 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <svg className="h-4 w-4 shrink-0 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="12" y1="8" x2="12" y2="12" />
                     <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -963,7 +964,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                 <button
                   type="button"
                   onClick={() => setBackupError(null)}
-                  className="text-rose-700 hover:text-rose-900 font-bold ml-2"
+                  className="text-error hover:opacity-80 font-bold ml-2"
                 >
                   ✕
                 </button>
@@ -973,9 +974,9 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
             {/* Database List / Grid */}
             <div className="mt-5">
               {filteredDatabases.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-200 py-12 text-center">
+                <div className="rounded-lg border border-dashed border-hairline py-12 text-center bg-canvas/40">
                   <svg
-                    className="mx-auto h-8 w-8 text-zinc-400"
+                    className="mx-auto h-8 w-8 text-muted-soft"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -985,10 +986,10 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                     <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
                     <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
                   </svg>
-                  <p className="mt-2 text-sm font-semibold text-zinc-900">
+                  <p className="mt-2 text-sm font-semibold text-ink">
                     No databases found
                   </p>
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-xs text-muted">
                     {searchQuery
                       ? `No databases match "${searchQuery}".`
                       : "No user databases found on this MySQL server. (System databases are excluded)"}
@@ -1002,10 +1003,10 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                     return (
                       <div
                         key={dbName}
-                        className="group flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 transition hover:border-zinc-400 hover:bg-white hover:shadow-xs"
+                        className="group flex items-center justify-between rounded-lg border border-hairline bg-canvas p-3.5 transition hover:border-primary/40 hover:shadow-2xs"
                       >
                         <div className="flex items-center gap-3 min-w-0 pr-2">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-cream-strong border border-hairline text-primary">
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                               <ellipse cx="12" cy="5" rx="9" ry="3" />
                               <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
@@ -1013,7 +1014,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                             </svg>
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate font-mono text-sm font-semibold text-zinc-900" title={dbName}>
+                            <p className="truncate font-mono text-sm font-semibold text-ink" title={dbName}>
                               {dbName}
                             </p>
                           </div>
@@ -1026,11 +1027,11 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                             onClick={() => handleBackup(dbName)}
                             disabled={backingUpDb !== null}
                             title={`Backup ${dbName} to S3`}
-                            className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+                            className="flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-on-primary shadow-xs transition hover:bg-primary-active disabled:opacity-50"
                           >
                             {isBackingUp ? (
                               <>
-                                <svg className="h-3.5 w-3.5 animate-spin text-zinc-600" fill="none" viewBox="0 0 24 24">
+                                <svg className="h-3.5 w-3.5 animate-spin text-on-primary" fill="none" viewBox="0 0 24 24">
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -1038,7 +1039,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                               </>
                             ) : (
                               <>
-                                <svg className="h-3.5 w-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <svg className="h-3.5 w-3.5 text-on-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                 </svg>
                                 <span>Backup</span>
@@ -1054,9 +1055,9 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                               }}
                               disabled={backingUpDb !== null}
                               title={`Schedule recurring backups of ${dbName}`}
-                              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+                              className="flex items-center gap-1.5 rounded-md border border-hairline bg-canvas px-2.5 py-1.5 text-xs font-medium text-body shadow-2xs transition hover:bg-surface-soft hover:text-ink disabled:opacity-50"
                             >
-                              <svg className="h-3.5 w-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                              <svg className="h-3.5 w-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                                 <circle cx="12" cy="12" r="9" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 2" />
                               </svg>

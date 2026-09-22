@@ -26,3 +26,22 @@ Canonical roles mapped 1:1 (`needs-triage`, `needs-info`, `ready-for-agent`, `re
 ### Domain docs
 
 Single-context layout (`CONTEXT.md` + `docs/adr/` at root). See `docs/agents/domain.md`.
+
+# Design system & UI
+
+- Always consult `DESIGN.md` before writing or modifying any UI.
+- The application operates strictly in single-light mode (`color-scheme: light`): do NOT add `dark:*` Tailwind classes or dark canvas backgrounds.
+- Use the theme tokens configured in `app/globals.css` (e.g. `bg-canvas`, `bg-surface-card`, `bg-surface-soft`, `text-ink`, `text-body`, `text-muted`, `border-hairline`, `bg-primary`, `text-on-primary`).
+- Display headings must use the serif display font (`font-serif` / Cormorant Garamond), UI body/labels use sans (`font-sans` / Inter), and code/SQL blocks use monospace (`font-mono` / JetBrains Mono).
+- High-contrast dark navy surfaces (`bg-surface-dark`, `#181715`) are reserved exclusively for developer code chrome (raw SQL dump viewers, schema DDL inspection, terminal panels).
+- Primary CTAs use warm coral (`bg-primary` / `#cc785c`), hover/active darkens to `#a9583e`. Avoid generic blues or purples.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

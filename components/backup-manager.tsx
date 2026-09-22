@@ -392,10 +392,10 @@ export function BackupManager({
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-100 pb-5">
+      <div className="rounded-xl border border-hairline bg-surface-card p-6 shadow-2xs sm:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-hairline pb-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-cream-strong border border-hairline text-primary">
               <svg
                 className="h-5 w-5"
                 fill="none"
@@ -412,14 +412,14 @@ export function BackupManager({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
+                <h2 className="font-serif text-xl sm:text-2xl font-normal tracking-tight text-ink">
                   Database Backups
                 </h2>
-                <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-700">
+                <span className="inline-flex items-center rounded-full bg-surface-cream-strong border border-hairline px-2.5 py-0.5 text-xs font-semibold text-body-strong">
                   {backups.length}
                 </span>
               </div>
-              <p className="mt-0.5 text-xs text-zinc-500">
+              <p className="mt-0.5 text-xs text-muted">
                 Compressed database backups (.sql.gz) stored in S3-compatible object storage.
               </p>
             </div>
@@ -429,7 +429,7 @@ export function BackupManager({
             type="button"
             onClick={fetchBackups}
             disabled={isLoading}
-            className="flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:bg-zinc-50 disabled:opacity-50"
+            className="flex items-center gap-1.5 self-start sm:self-auto rounded-md border border-hairline bg-canvas px-3.5 py-1.5 text-xs font-medium text-body shadow-xs transition hover:bg-surface-soft hover:text-ink disabled:opacity-50"
           >
             <svg
               className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`}
@@ -450,9 +450,9 @@ export function BackupManager({
 
         {/* Action Success Alert */}
         {actionSuccess && (
-          <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700">
+          <div className="mt-4 flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success">
             <svg
-              className="h-4 w-4 shrink-0 text-emerald-600"
+              className="h-4 w-4 shrink-0 text-success"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -466,12 +466,12 @@ export function BackupManager({
 
         {/* Error Alert */}
         {error && (
-          <div className="mt-4 flex items-center justify-between rounded-xl bg-rose-50 p-3.5 text-xs text-rose-700">
+          <div className="mt-4 flex items-center justify-between rounded-lg border border-error/30 bg-error/10 p-3.5 text-xs text-error">
             <span>{error}</span>
             <button
               type="button"
               onClick={fetchBackups}
-              className="font-semibold underline hover:text-rose-900 ml-2"
+              className="font-semibold underline hover:text-error ml-2"
             >
               Retry
             </button>
@@ -481,7 +481,7 @@ export function BackupManager({
         {/* Search Filter */}
         <div className="mt-5">
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-400">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-soft">
               <svg
                 className="h-4 w-4"
                 fill="none"
@@ -498,13 +498,13 @@ export function BackupManager({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search backups by database name or server host..."
-              className="block w-full rounded-xl border border-zinc-300 bg-zinc-50/50 py-2 pl-9 pr-8 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+              className="block w-full rounded-md border border-hairline bg-canvas py-2 pl-9 pr-8 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:bg-canvas focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600"
+                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-muted hover:text-ink"
               >
                 <svg
                   className="h-4 w-4"
@@ -523,9 +523,9 @@ export function BackupManager({
         {/* Backups List */}
         <div className="mt-6">
           {isLoading && backups.length === 0 ? (
-            <div className="flex items-center justify-center py-12 text-zinc-400">
+            <div className="flex items-center justify-center py-12 text-muted">
               <svg
-                className="h-5 w-5 animate-spin mr-2"
+                className="h-5 w-5 animate-spin mr-2 text-primary"
                 fill="none"
                 viewBox="0 0 24 24"
               >
@@ -546,8 +546,8 @@ export function BackupManager({
               <span className="text-xs">Loading database backups...</span>
             </div>
           ) : backups.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-200 py-12 text-center">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-400">
+            <div className="rounded-lg border border-dashed border-hairline py-12 text-center bg-canvas/40">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-surface-cream-strong text-primary border border-hairline">
                 <svg
                   className="h-5 w-5"
                   fill="none"
@@ -562,16 +562,16 @@ export function BackupManager({
                   />
                 </svg>
               </div>
-              <p className="mt-3 text-sm font-semibold text-zinc-800">
+              <p className="mt-3 text-sm font-semibold text-ink">
                 No database backups yet
               </p>
-              <p className="mt-1 text-xs text-zinc-400 max-w-sm mx-auto">
+              <p className="mt-1 text-xs text-muted max-w-sm mx-auto">
                 Connect to any MySQL server in the Database Explorer tab and click the{" "}
-                <span className="font-semibold text-zinc-600">Backup</span> button next to any database to create an instant S3 backup.
+                <span className="font-semibold text-body">Backup</span> button next to any database to create an instant S3 backup.
               </p>
             </div>
           ) : filteredBackups.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-200 py-8 text-center text-xs text-zinc-500">
+            <div className="rounded-lg border border-dashed border-hairline py-8 text-center text-xs text-muted bg-canvas/40">
               No backups match &quot;{searchQuery}&quot;.
             </div>
           ) : (
@@ -584,22 +584,22 @@ export function BackupManager({
                 return (
                   <div
                     key={backup.id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 rounded-xl border border-zinc-200/80 bg-zinc-50/40 p-4 transition hover:border-zinc-300 hover:bg-white hover:shadow-2xs"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 rounded-lg border border-hairline bg-canvas p-4 transition hover:border-primary/40 hover:shadow-2xs"
                   >
                     {/* Database & Server Details */}
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <span className="font-mono font-bold text-sm text-zinc-900">
+                        <span className="font-mono font-bold text-sm text-ink">
                           {backup.databaseName}
                         </span>
-                        <span className="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
+                        <span className="inline-flex items-center rounded-md border border-hairline bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-body">
                           {backup.host}:{backup.port}
                         </span>
-                        <span className="inline-flex items-center rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700">
+                        <span className="inline-flex items-center rounded-md border border-hairline bg-surface-cream-strong px-2 py-0.5 text-[11px] font-medium text-body-strong">
                           {formatBytes(backup.sizeBytes)}
                         </span>
                         <span
-                          className="text-[11px] text-zinc-400"
+                          className="text-[11px] text-muted-soft"
                           title={new Date(backup.createdAt).toLocaleString()}
                         >
                           • {formatRelativeTime(backup.createdAt)}
@@ -607,7 +607,7 @@ export function BackupManager({
                       </div>
 
                       <p
-                        className="font-mono text-[11px] text-zinc-400 truncate max-w-xl"
+                        className="font-mono text-[11px] text-muted truncate max-w-xl"
                         title={backup.s3Key}
                       >
                         {backup.s3Key}
@@ -617,22 +617,22 @@ export function BackupManager({
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                       {isConfirmingDelete ? (
-                        <div className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50/60 p-1">
-                          <span className="text-xs text-rose-700 font-medium pl-1">
+                        <div className="flex items-center gap-1.5 rounded-md border border-error/30 bg-error/10 p-1">
+                          <span className="text-xs text-error font-medium pl-1">
                             Delete?
                           </span>
                           <button
                             type="button"
                             onClick={() => handleDelete(backup.id)}
                             disabled={isDeleting}
-                            className="rounded-md bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white shadow-2xs transition hover:bg-rose-700 disabled:opacity-50"
+                            className="rounded bg-error px-2.5 py-1 text-xs font-semibold text-white shadow-2xs transition hover:opacity-90 disabled:opacity-50"
                           >
                             {isDeleting ? "..." : "Confirm"}
                           </button>
                           <button
                             type="button"
                             onClick={() => setConfirmDeleteId(null)}
-                            className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                            className="rounded border border-hairline bg-canvas px-2 py-1 text-xs font-medium text-body hover:bg-surface-soft"
                           >
                             Cancel
                           </button>
@@ -645,12 +645,12 @@ export function BackupManager({
                             onClick={() => handleDownload(backup)}
                             disabled={isDownloading}
                             title="Download backup (.sql.gz) from S3"
-                            className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+                            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-on-primary shadow-xs transition hover:bg-primary-active disabled:opacity-50"
                           >
                             {isDownloading ? (
                               <>
                                 <svg
-                                  className="h-3.5 w-3.5 animate-spin"
+                                  className="h-3.5 w-3.5 animate-spin text-on-primary"
                                   fill="none"
                                   viewBox="0 0 24 24"
                                 >
@@ -673,7 +673,7 @@ export function BackupManager({
                             ) : (
                               <>
                                 <svg
-                                  className="h-3.5 w-3.5 text-zinc-500"
+                                  className="h-3.5 w-3.5 text-on-primary"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -707,12 +707,12 @@ export function BackupManager({
                                 disabled={unavailable || isChecking}
                                 title={inspectTitle}
                                 aria-label={inspectTitle}
-                                className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex items-center gap-1.5 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-xs font-medium text-body shadow-2xs transition hover:bg-surface-soft hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {isChecking ? (
                                   <>
                                     <svg
-                                      className="h-3.5 w-3.5 animate-spin text-zinc-500"
+                                      className="h-3.5 w-3.5 animate-spin text-primary"
                                       fill="none"
                                       viewBox="0 0 24 24"
                                     >
@@ -735,7 +735,7 @@ export function BackupManager({
                                 ) : (
                                   <>
                                     <svg
-                                      className="h-3.5 w-3.5 text-zinc-500"
+                                      className="h-3.5 w-3.5 text-muted"
                                       fill="none"
                                       stroke="currentColor"
                                       viewBox="0 0 24 24"
@@ -764,7 +764,7 @@ export function BackupManager({
                             type="button"
                             onClick={() => setConfirmDeleteId(backup.id)}
                             title="Delete backup"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-zinc-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-muted transition hover:border-error/30 hover:bg-error/10 hover:text-error"
                           >
                             <svg
                               className="h-3.5 w-3.5"

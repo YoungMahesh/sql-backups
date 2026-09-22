@@ -95,63 +95,63 @@ export function ScheduleRow({ schedule, onEdit, onDeleted, onChanged }: Schedule
   };
 
   return (
-    <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/40 p-4 transition hover:border-zinc-300 hover:bg-white">
+    <div className="rounded-lg border border-hairline bg-canvas p-4 transition hover:border-primary/40 hover:shadow-2xs">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="font-mono font-bold text-sm text-zinc-900">{schedule.databaseName}</span>
-            <span className="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
+            <span className="font-mono font-bold text-sm text-ink">{schedule.databaseName}</span>
+            <span className="inline-flex items-center rounded-md border border-hairline bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-body">
               {schedule.connectionHost}:{schedule.connectionPort}
             </span>
-            <span className="inline-flex items-center rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700">
+            <span className="inline-flex items-center rounded-md border border-hairline bg-surface-cream-strong px-2 py-0.5 text-[11px] font-medium text-body-strong">
               {schedule.timezone}
             </span>
-            <span className="inline-flex items-center rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+            <span className="inline-flex items-center rounded-md border border-hairline bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-muted">
               keep last {schedule.retentionCount}
             </span>
             <span
-              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold border ${
                 schedule.enabled
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-zinc-200 text-zinc-700"
+                  ? "border-success/30 bg-success/15 text-success"
+                  : "border-hairline bg-surface-soft text-muted"
               }`}
             >
               {schedule.enabled ? "enabled" : "disabled"}
             </span>
           </div>
-          <p className="text-[11px] text-zinc-500">
-            <span className="font-medium text-zinc-700">{describeCron(schedule.cronExpression)}</span>
-            <span className="ml-1.5 font-mono text-zinc-400" title={schedule.cronExpression}>
+          <p className="text-[11px] text-muted">
+            <span className="font-medium text-ink">{describeCron(schedule.cronExpression)}</span>
+            <span className="ml-1.5 font-mono text-muted-soft" title={schedule.cronExpression}>
               ({schedule.cronExpression})
             </span>
           </p>
-          <div className="grid grid-cols-1 gap-1 text-[11px] text-zinc-500 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-1 text-[11px] text-muted sm:grid-cols-2">
             <span title={formatAbsolute(schedule.nextRunAt)}>
-              Next run: <span className="font-medium text-zinc-700">{formatAbsolute(schedule.nextRunAt)}</span>
+              Next run: <span className="font-medium text-body">{formatAbsolute(schedule.nextRunAt)}</span>
             </span>
             <span title={formatAbsolute(schedule.lastRunAt)}>
-              Last run: <span className="font-medium text-zinc-700">{formatAbsolute(schedule.lastRunAt)}</span>
+              Last run: <span className="font-medium text-body">{formatAbsolute(schedule.lastRunAt)}</span>
             </span>
           </div>
-          {error && <p className="text-[11px] text-rose-600">{error}</p>}
+          {error && <p className="text-[11px] text-error">{error}</p>}
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
           {confirmDelete ? (
-            <div className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50/60 p-1">
-              <span className="text-xs text-rose-700 font-medium pl-1">Delete?</span>
+            <div className="flex items-center gap-1.5 rounded-md border border-error/30 bg-error/10 p-1">
+              <span className="text-xs text-error font-medium pl-1">Delete?</span>
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="rounded-md bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white shadow-2xs transition hover:bg-rose-700 disabled:opacity-50"
+                className="rounded bg-error px-2.5 py-1 text-xs font-semibold text-white shadow-2xs transition hover:opacity-90 disabled:opacity-50"
               >
                 {deleting ? "..." : "Confirm"}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                className="rounded border border-hairline bg-canvas px-2 py-1 text-xs font-medium text-body hover:bg-surface-soft"
               >
                 Cancel
               </button>
@@ -162,21 +162,21 @@ export function ScheduleRow({ schedule, onEdit, onDeleted, onChanged }: Schedule
                 type="button"
                 onClick={handleToggle}
                 disabled={toggling}
-                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+                className="rounded-md border border-hairline bg-canvas px-2.5 py-1.5 text-xs font-medium text-body shadow-2xs transition hover:bg-surface-soft hover:text-ink disabled:opacity-50"
               >
                 {schedule.enabled ? "Disable" : "Enable"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowRuns((v) => !v)}
-                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
+                className="rounded-md border border-hairline bg-canvas px-2.5 py-1.5 text-xs font-medium text-body shadow-2xs transition hover:bg-surface-soft hover:text-ink"
               >
                 {showRuns ? "Hide runs" : "Runs"}
               </button>
               <button
                 type="button"
                 onClick={() => onEdit(schedule)}
-                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
+                className="rounded-md border border-hairline bg-canvas px-2.5 py-1.5 text-xs font-medium text-body shadow-2xs transition hover:bg-surface-soft hover:text-ink"
               >
                 Edit
               </button>
@@ -184,7 +184,7 @@ export function ScheduleRow({ schedule, onEdit, onDeleted, onChanged }: Schedule
                 type="button"
                 onClick={() => setConfirmDelete(true)}
                 title="Delete schedule"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-zinc-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-muted transition hover:border-error/30 hover:bg-error/10 hover:text-error"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <path
