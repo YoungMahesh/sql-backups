@@ -13,22 +13,38 @@ interface InlineSchedule {
 
 interface ConnectionSchedulesProps {
   savedConnectionId: string;
+  engine?: "mysql" | "postgres";
 }
 
-export function ConnectionSchedules({ savedConnectionId }: ConnectionSchedulesProps) {
+export function ConnectionSchedules({ savedConnectionId, engine }: ConnectionSchedulesProps) {
   const [schedules, setSchedules] = useState<InlineSchedule[] | null>(null);
 
   useEffect(() => {
     let ignore = false;
     async function load() {
       try {
-        const res = await fetch("/api/mysql/schedules");
-        const data = await res.json();
+        let list: Array<InlineSchedule & { savedConnectionId: string }> = [];
+        if (engine === "postgres") {
+          const res = await fetch("/api/postgres/schedules");
+          const data = await res.json();
+          if (res.ok) list = data.schedules || [];
+        } else if (engine === "mysql") {
+          const res = await fetch("/api/mysql/schedules");
+          const data = await res.json();
+          if (res.ok) list = data.schedules || [];
+        } else {
+          const [mysqlRes, pgRes] = await Promise.all([
+            fetch("/api/mysql/schedules"),
+            fetch("/api/postgres/schedules"),
+          ]);
+          const [mysqlData, pgData] = await Promise.all([
+            mysqlRes.ok ? mysqlRes.json() : { schedules: [] },
+            pgRes.ok ? pgRes.json() : { schedules: [] },
+          ]);
+          list = [...(mysqlData.schedules || []), ...(pgData.schedules || [])];
+        }
+
         if (ignore) return;
-        if (!res.ok) return;
-        const list = (data.schedules || []) as Array<
-          InlineSchedule & { savedConnectionId: string }
-        >;
         setSchedules(list.filter((s) => s.savedConnectionId === savedConnectionId));
       } catch {
         if (!ignore) setSchedules([]);
@@ -38,7 +54,7 @@ export function ConnectionSchedules({ savedConnectionId }: ConnectionSchedulesPr
     return () => {
       ignore = true;
     };
-  }, [savedConnectionId]);
+  }, [savedConnectionId, engine]);
 
   if (schedules === null) {
     return (

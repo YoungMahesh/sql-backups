@@ -34,12 +34,20 @@ export function ScheduleManager({
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/mysql/schedules");
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to load schedules.");
-      }
-      const list: ScheduleItem[] = data.schedules || [];
+      const [mysqlRes, pgRes] = await Promise.all([
+        fetch("/api/mysql/schedules"),
+        fetch("/api/postgres/schedules"),
+      ]);
+      const [mysqlData, pgData] = await Promise.all([
+        mysqlRes.ok ? mysqlRes.json() : { schedules: [] },
+        pgRes.ok ? pgRes.json() : { schedules: [] },
+      ]);
+      const list: ScheduleItem[] = [
+        ...(mysqlData.schedules || []),
+        ...(pgData.schedules || []),
+      ].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
       setSchedules(list);
       onSchedulesLoaded?.(list.length);
     } catch (err: unknown) {
@@ -53,16 +61,23 @@ export function ScheduleManager({
     let ignore = false;
     async function load() {
       try {
-        const res = await fetch("/api/mysql/schedules");
-        const data = await res.json();
+        const [mysqlRes, pgRes] = await Promise.all([
+          fetch("/api/mysql/schedules"),
+          fetch("/api/postgres/schedules"),
+        ]);
+        const [mysqlData, pgData] = await Promise.all([
+          mysqlRes.ok ? mysqlRes.json() : { schedules: [] },
+          pgRes.ok ? pgRes.json() : { schedules: [] },
+        ]);
         if (!ignore) {
-          if (!res.ok) {
-            setError(data.error || "Failed to load schedules.");
-          } else {
-            const list: ScheduleItem[] = data.schedules || [];
-            setSchedules(list);
-            onSchedulesLoaded?.(list.length);
-          }
+          const list: ScheduleItem[] = [
+            ...(mysqlData.schedules || []),
+            ...(pgData.schedules || []),
+          ].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          setSchedules(list);
+          onSchedulesLoaded?.(list.length);
         }
       } catch (err: unknown) {
         if (!ignore) {
@@ -307,6 +322,7 @@ export function ScheduleManager({
                 timezone: editingSchedule.timezone,
                 retentionCount: editingSchedule.retentionCount,
                 enabled: editingSchedule.enabled,
+                engine: editingSchedule.connectionEngine,
               }
             : undefined
         }

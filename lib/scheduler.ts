@@ -8,8 +8,9 @@ import {
   savedConnection,
 } from "@/db/schema";
 import { decrypt, parseConnectionString } from "@/lib/crypto";
-import { backupDatabaseToS3 } from "@/lib/mysql-backup";
+import { runBackup } from "@/lib/backup-runner";
 import { deleteBackupObject } from "@/lib/s3";
+import { deriveManifestKey } from "@/lib/manifest";
 import { nextRunAt } from "@/lib/cron";
 
 const TICK_INTERVAL_MS = 60_000;
@@ -19,7 +20,7 @@ declare global {
   var __backup_scheduler_started: boolean | undefined;
 }
 
-async function executeScheduledBackup(scheduleId: string, runId: string): Promise<void> {
+export async function executeScheduledBackup(scheduleId: string, runId: string): Promise<void> {
   const [schedule] = await db
     .select()
     .from(backupSchedule)
@@ -51,16 +52,18 @@ async function executeScheduledBackup(scheduleId: string, runId: string): Promis
   }
 
   const parsed = parseConnectionString(canonicalUri);
+  const engine = connection.engine ?? parsed.engine ?? "mysql";
 
   let backupResult;
   try {
-    backupResult = await backupDatabaseToS3({
+    backupResult = await runBackup({
+      engine,
+      databaseName: schedule.databaseName,
+      userId: schedule.userId,
       connectionOptions: {
         uri: canonicalUri,
         connectTimeout: 15000,
       },
-      databaseName: schedule.databaseName,
-      userId: schedule.userId,
     });
   } catch (err) {
     await failRun(runId, describeError(err));
@@ -77,6 +80,7 @@ async function executeScheduledBackup(scheduleId: string, runId: string): Promis
       databaseName: schedule.databaseName,
       host: parsed.host,
       port: parsed.port,
+      engine,
       s3Key: backupResult.s3Key,
       sizeBytes: backupResult.sizeBytes,
       createdAt: now,
@@ -95,10 +99,17 @@ async function executeScheduledBackup(scheduleId: string, runId: string): Promis
     return;
   }
 
-  await applyRetention(schedule.userId, schedule.databaseName, parsed.host, parsed.port, schedule.retentionCount);
+  await applyRetention(
+    schedule.userId,
+    schedule.databaseName,
+    parsed.host,
+    parsed.port,
+    schedule.retentionCount,
+    engine
+  );
 }
 
-async function failRun(runId: string, errorMessage: string): Promise<void> {
+export async function failRun(runId: string, errorMessage: string): Promise<void> {
   try {
     await db
       .update(backupRun)
@@ -113,24 +124,28 @@ async function failRun(runId: string, errorMessage: string): Promise<void> {
   }
 }
 
-async function applyRetention(
+export async function applyRetention(
   userId: string,
   databaseName: string,
   host: string,
   port: number,
-  retentionCount: number
+  retentionCount: number,
+  engine?: "mysql" | "postgres"
 ): Promise<void> {
+  const conditions = [
+    eq(databaseBackup.userId, userId),
+    eq(databaseBackup.databaseName, databaseName),
+    eq(databaseBackup.host, host),
+    eq(databaseBackup.port, port),
+  ];
+  if (engine) {
+    conditions.push(eq(databaseBackup.engine, engine));
+  }
+
   const allBackups = await db
     .select({ id: databaseBackup.id, s3Key: databaseBackup.s3Key, createdAt: databaseBackup.createdAt })
     .from(databaseBackup)
-    .where(
-      and(
-        eq(databaseBackup.userId, userId),
-        eq(databaseBackup.databaseName, databaseName),
-        eq(databaseBackup.host, host),
-        eq(databaseBackup.port, port)
-      )
-    )
+    .where(and(...conditions))
     .orderBy(asc(databaseBackup.createdAt));
 
   if (allBackups.length <= retentionCount) return;
@@ -145,6 +160,19 @@ async function applyRetention(
         err
       );
     }
+
+    const manifestKey = deriveManifestKey(row.s3Key);
+    if (manifestKey) {
+      try {
+        await deleteBackupObject(manifestKey);
+      } catch (err) {
+        console.warn(
+          `[backup-scheduler] failed to delete S3 manifest ${manifestKey}:`,
+          err
+        );
+      }
+    }
+
     try {
       await db.delete(databaseBackup).where(eq(databaseBackup.id, row.id));
     } catch (err) {
@@ -156,7 +184,7 @@ async function applyRetention(
   }
 }
 
-async function processSchedule(schedule: typeof backupSchedule.$inferSelect): Promise<void> {
+export async function processSchedule(schedule: typeof backupSchedule.$inferSelect): Promise<void> {
   const runId = crypto.randomUUID();
   const now = new Date();
 

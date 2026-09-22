@@ -947,7 +947,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                           {item.maskedUri}
                         </p>
 
-                        <ConnectionSchedules savedConnectionId={item.id} />
+                        <ConnectionSchedules savedConnectionId={item.id} engine={item.engine} />
                       </div>
 
                       {/* Action Buttons */}
@@ -1319,6 +1319,7 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
           port: c.port,
           username: c.username,
           database: c.database,
+          engine: c.engine,
         }))}
         defaultDatabase={scheduleTargetDb ?? undefined}
         defaultSavedConnectionId={

@@ -2,7 +2,6 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import mysql, { type Connection, type ConnectionOptions } from "mysql2/promise";
 import { db } from "@/db";
 import {
   backupSchedule,
@@ -10,9 +9,13 @@ import {
   user as userTable,
 } from "@/db/schema";
 import { and, desc, eq } from "drizzle-orm";
-import { decrypt, parseConnectionString } from "@/lib/crypto";
+import { decrypt } from "@/lib/crypto";
 import { validateScheduleInput } from "@/lib/schedule-validation";
 import { nextRunAt } from "@/lib/cron";
+import {
+  listPostgresUserDatabases,
+  parsePostgresErrorMessage,
+} from "@/lib/postgres-connection";
 
 export const runtime = "nodejs";
 
@@ -24,13 +27,13 @@ interface CreateScheduleBody {
   retentionCount?: number;
 }
 
-async function resolveSavedConnection(
+async function resolveSavedPostgresConnection(
   userId: string,
   savedConnectionId: string
 ): Promise<
   | {
       ok: true;
-      connectionOptions: ConnectionOptions;
+      canonicalUri: string;
       displayHost: string;
       displayPort: number;
     }
@@ -42,13 +45,14 @@ async function resolveSavedConnection(
     .where(
       and(
         eq(savedConnection.id, savedConnectionId),
-        eq(savedConnection.userId, userId)
+        eq(savedConnection.userId, userId),
+        eq(savedConnection.engine, "postgres")
       )
     )
     .limit(1);
 
   if (!saved) {
-    return { ok: false, status: 404, error: "Saved connection not found." };
+    return { ok: false, status: 404, error: "Saved PostgreSQL connection not found." };
   }
 
   let canonicalUri: string;
@@ -62,53 +66,38 @@ async function resolveSavedConnection(
     };
   }
 
-  const parsed = parseConnectionString(canonicalUri);
   return {
     ok: true,
-    connectionOptions: { uri: canonicalUri, connectTimeout: 10000 },
-    displayHost: parsed.host,
-    displayPort: parsed.port,
+    canonicalUri,
+    displayHost: saved.host,
+    displayPort: saved.port,
   };
 }
 
-async function verifyDatabaseExists(
-  connectionOptions: ConnectionOptions,
+async function verifyPostgresDatabaseExists(
+  canonicalUri: string,
   databaseName: string
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  let conn: Connection | null = null;
   try {
-    conn = await mysql.createConnection(connectionOptions);
-    const [rows] = await conn.query(
-      "SHOW DATABASES LIKE ?",
-      [databaseName]
-    );
-    const matches = Array.isArray(rows) && rows.length > 0;
+    const { databases } = await listPostgresUserDatabases(canonicalUri);
+    const matches = databases.includes(databaseName);
     if (!matches) {
       return {
         ok: false,
         status: 400,
-        error: `Database "${databaseName}" does not exist on the target server.`,
+        error: `Database "${databaseName}" does not exist on the target PostgreSQL server.`,
       };
     }
     return { ok: true };
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Could not connect to target server.";
+    const message = parsePostgresErrorMessage(err);
     return { ok: false, status: 502, error: message };
-  } finally {
-    if (conn) {
-      try {
-        await conn.end();
-      } catch {
-        // Ignore close errors
-      }
-    }
   }
 }
 
 /**
- * GET /api/mysql/schedules
- * Returns all Scheduled Backups owned by the authenticated user, joined with
+ * GET /api/postgres/schedules
+ * Returns all PostgreSQL Scheduled Backups owned by the authenticated user, joined with
  * their Saved Connection info for display.
  */
 export async function GET() {
@@ -145,22 +134,27 @@ export async function GET() {
         savedConnection,
         eq(savedConnection.id, backupSchedule.savedConnectionId)
       )
-      .where(eq(backupSchedule.userId, session.user.id))
+      .where(
+        and(
+          eq(backupSchedule.userId, session.user.id),
+          eq(savedConnection.engine, "postgres")
+        )
+      )
       .orderBy(desc(backupSchedule.createdAt));
 
     return NextResponse.json({ success: true, schedules: rows });
   } catch (err: unknown) {
     const message =
-      err instanceof Error ? err.message : "Failed to fetch schedules.";
+      err instanceof Error ? err.message : "Failed to fetch PostgreSQL schedules.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 /**
- * POST /api/mysql/schedules
- * Creates a new Scheduled Backup. Validates input, confirms the saved connection
- * is owned by the user, confirms the database exists on the target server, and
- * persists the schedule with a computed next_run_at.
+ * POST /api/postgres/schedules
+ * Creates a new Scheduled Backup for a PostgreSQL database. Validates input,
+ * confirms the saved connection is owned by the user and is a PostgreSQL target,
+ * verifies the database exists on the target server, and persists the schedule.
  */
 export async function POST(req: Request) {
   try {
@@ -197,7 +191,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const resolved = await resolveSavedConnection(
+    const resolved = await resolveSavedPostgresConnection(
       session.user.id,
       savedConnectionId
     );
@@ -208,8 +202,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const dbCheck = await verifyDatabaseExists(
-      resolved.connectionOptions,
+    const dbCheck = await verifyPostgresDatabaseExists(
+      resolved.canonicalUri,
       validated.value.databaseName
     );
     if (!dbCheck.ok) {
@@ -249,9 +243,17 @@ export async function POST(req: Request) {
         updatedAt: now,
       });
     } catch (err: unknown) {
+      const errorObj = err as { code?: string; cause?: { code?: string; message?: string } };
       const message =
-        err instanceof Error ? err.message : "Failed to create schedule.";
-      if (/duplicate|unique/i.test(message)) {
+        err instanceof Error ? err.message : "Failed to create PostgreSQL schedule.";
+      const causeMessage = errorObj?.cause?.message || "";
+      const isUnique =
+        errorObj?.code === "23505" ||
+        errorObj?.cause?.code === "23505" ||
+        /duplicate|unique/i.test(message) ||
+        /duplicate|unique/i.test(causeMessage);
+
+      if (isUnique) {
         return NextResponse.json(
           {
             error: `A schedule already exists for "${validated.value.databaseName}" on this connection.`,
@@ -277,7 +279,7 @@ export async function POST(req: Request) {
         }
       } catch (err) {
         console.warn(
-          "Failed to update user.timezone alongside schedule creation:",
+          "Failed to update user.timezone alongside PostgreSQL schedule creation:",
           err
         );
       }
@@ -291,7 +293,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, schedule: created }, { status: 201 });
   } catch (err: unknown) {
-    console.error("Schedule creation failed:", err);
+    console.error("PostgreSQL schedule creation failed:", err);
     const message =
       err instanceof Error ? err.message : "An unexpected error occurred.";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -32,6 +32,7 @@ export interface ScheduleItem {
   connectionHost: string;
   connectionPort: number;
   connectionUsername: string;
+  connectionEngine?: "mysql" | "postgres";
 }
 
 interface ScheduleRowProps {
@@ -58,11 +59,16 @@ export function ScheduleRow({ schedule, onEdit, onDeleted, onChanged }: Schedule
   const [showRuns, setShowRuns] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const apiPrefix =
+    schedule.connectionEngine === "postgres"
+      ? "/api/postgres/schedules"
+      : "/api/mysql/schedules";
+
   const handleDelete = async () => {
     setDeleting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/mysql/schedules/${schedule.id}`, {
+      const res = await fetch(`${apiPrefix}/${schedule.id}`, {
         method: "DELETE",
       });
       const data = await res.json();
@@ -79,7 +85,7 @@ export function ScheduleRow({ schedule, onEdit, onDeleted, onChanged }: Schedule
     setToggling(true);
     setError(null);
     try {
-      const res = await fetch(`/api/mysql/schedules/${schedule.id}`, {
+      const res = await fetch(`${apiPrefix}/${schedule.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: !schedule.enabled }),
@@ -100,6 +106,9 @@ export function ScheduleRow({ schedule, onEdit, onDeleted, onChanged }: Schedule
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className="font-mono font-bold text-sm text-ink">{schedule.databaseName}</span>
+            <span className="inline-flex items-center rounded-md border border-hairline bg-surface-cream-strong px-2 py-0.5 text-[11px] font-semibold text-body-strong">
+              {schedule.connectionEngine === "postgres" ? "PostgreSQL" : "MySQL"}
+            </span>
             <span className="inline-flex items-center rounded-md border border-hairline bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-body">
               {schedule.connectionHost}:{schedule.connectionPort}
             </span>
@@ -199,7 +208,11 @@ export function ScheduleRow({ schedule, onEdit, onDeleted, onChanged }: Schedule
         </div>
       </div>
 
-      <RunHistory scheduleId={schedule.id} open={showRuns} />
+      <RunHistory
+        scheduleId={schedule.id}
+        open={showRuns}
+        engine={schedule.connectionEngine}
+      />
     </div>
   );
 }

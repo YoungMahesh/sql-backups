@@ -8,6 +8,7 @@ export interface SavedConnectionOption {
   port: number;
   username: string;
   database: string | null;
+  engine?: "mysql" | "postgres";
 }
 
 interface ScheduleFormProps {
@@ -23,6 +24,7 @@ interface ScheduleFormProps {
     timezone: string;
     retentionCount: number;
     enabled: boolean;
+    engine?: "mysql" | "postgres";
   };
   defaultDatabase?: string;
   defaultSavedConnectionId?: string;
@@ -127,7 +129,13 @@ export function ScheduleForm({
     void (async () => {
       setLoadingDatabases(true);
       try {
-        const res = await fetch(`/api/mysql/databases`, {
+        const selectedConn = connections.find((c) => c.id === savedConnectionId);
+        const endpoint =
+          selectedConn?.engine === "postgres"
+            ? `/api/postgres/databases`
+            : `/api/mysql/databases`;
+
+        const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mode: "saved", savedConnectionId }),
@@ -150,7 +158,7 @@ export function ScheduleForm({
     return () => {
       ignore = true;
     };
-  }, [open, savedConnectionId]);
+  }, [open, savedConnectionId, connections]);
 
   if (!open) return null;
 
@@ -161,6 +169,13 @@ export function ScheduleForm({
     setValidationErrors([]);
 
     try {
+      const selectedConn = connections.find((c) => c.id === savedConnectionId);
+      const targetEngine = isEdit
+        ? initial?.engine || selectedConn?.engine
+        : selectedConn?.engine;
+      const apiPrefix =
+        targetEngine === "postgres" ? "/api/postgres/schedules" : "/api/mysql/schedules";
+
       const body = isEdit
         ? {
             cronExpression: effectiveCron.trim(),
@@ -176,7 +191,7 @@ export function ScheduleForm({
             retentionCount,
           };
 
-      const url = isEdit ? `/api/mysql/schedules/${initial!.id}` : "/api/mysql/schedules";
+      const url = isEdit ? `${apiPrefix}/${initial!.id}` : apiPrefix;
       const method = isEdit ? "PATCH" : "POST";
 
       const res = await fetch(url, {
@@ -259,7 +274,7 @@ export function ScheduleForm({
                   <option value="">Select a connection…</option>
                   {connections.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.host}:{c.port} ({c.username})
+                      {c.host}:{c.port} ({c.username}) — {c.engine === "postgres" ? "PostgreSQL" : "MySQL"}
                     </option>
                   ))}
                 </select>

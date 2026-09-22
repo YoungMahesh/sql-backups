@@ -30,9 +30,10 @@ function statusBadgeClass(status: BackupRunItem["status"]): string {
 interface RunHistoryProps {
   scheduleId: string;
   open: boolean;
+  engine?: "mysql" | "postgres";
 }
 
-export function RunHistory({ scheduleId, open }: RunHistoryProps) {
+export function RunHistory({ scheduleId, open, engine }: RunHistoryProps) {
   const [runs, setRuns] = useState<BackupRunItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +44,9 @@ export function RunHistory({ scheduleId, open }: RunHistoryProps) {
     async function load() {
       setError(null);
       try {
-        const res = await fetch(`/api/mysql/schedules/${scheduleId}/runs?limit=20`);
+        const apiPrefix =
+          engine === "postgres" ? "/api/postgres/schedules" : "/api/mysql/schedules";
+        const res = await fetch(`${apiPrefix}/${scheduleId}/runs?limit=20`);
         const data = await res.json();
         if (ignore) return;
         if (!res.ok) {
@@ -65,7 +68,7 @@ export function RunHistory({ scheduleId, open }: RunHistoryProps) {
     return () => {
       ignore = true;
     };
-  }, [open, scheduleId]);
+  }, [open, scheduleId, engine]);
 
   if (!open) return null;
 
@@ -120,7 +123,7 @@ export function RunHistory({ scheduleId, open }: RunHistoryProps) {
               )}
               {run.status === "success" && run.backupId && (
                 <a
-                  href={`/api/mysql/backups/${run.backupId}/download`}
+                  href={`/api/${engine === "postgres" ? "postgres" : "mysql"}/backups/${run.backupId}/download`}
                   className="text-[11px] font-medium text-primary underline hover:text-primary-active"
                   target="_blank"
                   rel="noopener noreferrer"
