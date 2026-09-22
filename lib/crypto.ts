@@ -7,7 +7,7 @@ function getDerivedKey(): Buffer {
   const secret = process.env.ENCRYPTION_KEY || process.env.BETTER_AUTH_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "test") {
-      return crypto.createHash("sha256").update("test-only-secret-key-db-manage-32b").digest();
+      return crypto.createHash("sha256").update("test-only-secret-key-sql-backups-32b").digest();
     }
     throw new Error(
       "Missing encryption secret. Please set BETTER_AUTH_SECRET or ENCRYPTION_KEY in your environment variables."

@@ -21,7 +21,7 @@ interface TableFixture {
 function buildDumpText(tables: TableFixture[], opts?: { views?: string[]; triggers?: string[] }): string {
   const parts: string[] = [];
   parts.push(`-- ------------------------------------------------------`);
-  parts.push(`-- MySQL Database Backup created by DB Manage`);
+  parts.push(`-- MySQL Database Backup created by SQL Backups`);
   parts.push(`-- Database: ${"`shop`"}`);
   parts.push(`-- Backup Date: 2026-09-05T12:30:00.000Z`);
   parts.push(`-- ------------------------------------------------------`);

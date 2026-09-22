@@ -195,10 +195,10 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold tracking-tight sm:text-lg">
-                  DB Manage
+                  SQL Backups
                 </h1>
                 <span className="hidden sm:inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-700">
-                  MySQL Explorer
+                  Database Backups
                 </span>
               </div>
             </div>
@@ -374,11 +374,11 @@ export default function Home() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            {mode === "login" ? "Welcome to DB Manage" : "Create an Account"}
+            {mode === "login" ? "Welcome to SQL Backups" : "Create an Account"}
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
             {mode === "login"
-              ? "Sign in to connect and manage your MySQL databases"
+              ? "Sign in to manage and automate your database backups"
               : "Sign up to start connecting and managing your databases"}
           </p>
         </div>

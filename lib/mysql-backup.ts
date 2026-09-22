@@ -221,7 +221,7 @@ export async function backupDatabaseToS3(options: BackupDatabaseOptions): Promis
     // Write header comments
     const nowIso = new Date().toISOString();
     await writeWithBackpressure(passThrough, `-- ------------------------------------------------------\n`);
-    await writeWithBackpressure(passThrough, `-- MySQL Database Backup created by DB Manage\n`);
+    await writeWithBackpressure(passThrough, `-- MySQL Database Backup created by SQL Backups\n`);
     await writeWithBackpressure(passThrough, `-- Database: ${escapeIdentifier(databaseName)}\n`);
     await writeWithBackpressure(passThrough, `-- Backup Date: ${nowIso}\n`);
     await writeWithBackpressure(passThrough, `-- ------------------------------------------------------\n\n`);
