@@ -1,0 +1,27 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies
+node_modules
+
+# Next.js build output and cache
+.next
+out
+build
+
+# Environment files
+.env*
+!.env
+.env.keys
+.env.docker
+
+# Tests and coverage
+tests
+coverage
+
+# Agent and documentation directories
+.agents
+.scratch
+docs
+*.md

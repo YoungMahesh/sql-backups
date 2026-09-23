@@ -1,0 +1,18 @@
+services:
+  sSQLBackups:
+    image: sql-backups:${TAG:-0}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    pull_policy: build
+    container_name: cSQLBackups
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    networks:
+      - sql-backups_net
+
+networks:
+  sql-backups_net:
+    name: sql-backups_net
+    driver: bridge
