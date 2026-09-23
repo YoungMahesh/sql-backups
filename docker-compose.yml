@@ -15,4 +15,4 @@ services:
 networks:
   sql-backups_net:
     name: sql-backups_net
-    driver: bridge
+    external: true 
