@@ -3,6 +3,8 @@ import {
   GetObjectCommand,
   PutObjectCommand,
   DeleteObjectCommand,
+  NoSuchKey,
+  S3ServiceException,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
@@ -169,4 +171,50 @@ export async function uploadBackupManifest(
       ContentType: "application/json",
     })
   );
+}
+
+/**
+ * Fetches a Backup Manifest JSON sibling object from S3.
+ *
+ * Returns the manifest bytes when present. Returns null when the dump key
+ * cannot produce a manifest key, or when the manifest object does not exist
+ * in S3 (the NoSuchKey case). Throws on any other S3 error so callers can
+ * distinguish "backup predates manifest" from a transient failure.
+ */
+export async function fetchBackupManifest(
+  dumpKey: string
+): Promise<Buffer | null> {
+  const manifestKey = deriveManifestKey(dumpKey);
+  if (!manifestKey) return null;
+
+  const client = getS3Client();
+  const { bucketName } = getS3Config();
+
+  let response;
+  try {
+    response = await client.send(
+      new GetObjectCommand({
+        Bucket: bucketName,
+        Key: manifestKey,
+      })
+    );
+  } catch (err) {
+    if (err instanceof S3ServiceException && err.name === NoSuchKey.name) {
+      return null;
+    }
+    throw err;
+  }
+
+  if (!response.Body) {
+    return null;
+  }
+
+  const stream = response.Body as Readable;
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(
+      Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array)
+    );
+  }
+  return Buffer.concat(chunks);
 }

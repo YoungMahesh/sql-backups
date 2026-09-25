@@ -38,3 +38,15 @@ export function formatRelativeTime(dateString: string): string {
     return "";
   }
 }
+
+/**
+ * Formats a row count for display in a backup inspector table list.
+ *
+ * Zero renders as "empty" because the inspector treats an empty table as a
+ * distinct state worth surfacing differently from "many rows".
+ */
+export function formatRowCount(rowCount: number): string {
+  if (!Number.isFinite(rowCount) || rowCount <= 0) return "empty";
+  if (rowCount === 1) return "1 row";
+  return `${rowCount.toLocaleString("en-US")} rows`;
+}

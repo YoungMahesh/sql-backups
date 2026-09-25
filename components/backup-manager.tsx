@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { formatBytes } from "@/lib/format";
+import {
+  InspectDrawer,
+  type ManifestViewState,
+} from "@/components/inspect-drawer";
 
 export interface BackupItem {
   id: string;
@@ -59,6 +63,15 @@ export function BackupManager({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  const [inspectAvailability, setInspectAvailability] = useState<
+    Record<string, "available" | "unavailable">
+  >({});
+  const [inspectingId, setInspectingId] = useState<string | null>(null);
+  const [inspectSession, setInspectSession] = useState<{
+    backup: BackupItem;
+    manifestState: ManifestViewState;
+  } | null>(null);
 
   const fetchBackups = useCallback(async () => {
     setIsLoading(true);
@@ -174,6 +187,84 @@ export function BackupManager({
     }
   };
 
+  const fetchManifestFor = useCallback(
+    async (backup: BackupItem): Promise<ManifestViewState> => {
+      try {
+        const res = await fetch(`/api/mysql/backups/${backup.id}/manifest`);
+        if (res.status === 404) {
+          setInspectAvailability((prev) => ({
+            ...prev,
+            [backup.id]: "unavailable",
+          }));
+          setActionSuccess("This backup predates the inspection feature.");
+          setTimeout(() => setActionSuccess(null), 4000);
+          return { kind: "error", message: "manifest_unavailable" };
+        }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Could not load backup manifest.");
+        }
+        const data = await res.json();
+        const manifest = data.manifest as
+          | import("@/lib/manifest").BackupManifest
+          | undefined;
+        if (!manifest) {
+          throw new Error("Could not load backup manifest.");
+        }
+        setInspectAvailability((prev) => ({
+          ...prev,
+          [backup.id]: "available",
+        }));
+        return { kind: "loaded", manifest };
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Could not load backup manifest.";
+        return { kind: "error", message };
+      }
+    },
+    []
+  );
+
+  const handleInspect = async (backup: BackupItem) => {
+    const cached = inspectAvailability[backup.id];
+    if (cached === "unavailable") {
+      setActionSuccess("This backup predates the inspection feature.");
+      setTimeout(() => setActionSuccess(null), 4000);
+      return;
+    }
+    if (cached === "available") {
+      setInspectSession({ backup, manifestState: { kind: "loading" } });
+    } else {
+      setInspectingId(backup.id);
+    }
+
+    const manifestState = await fetchManifestFor(backup);
+    setInspectingId(null);
+
+    if (manifestState.kind === "loaded") {
+      setInspectSession({ backup, manifestState });
+    }
+    // For error/unavailable states, leave the drawer closed (or unchanged) so
+    // a backup predating the feature never opens the inspector.
+  };
+
+  const handleInspectRetry = useCallback(() => {
+    setInspectSession((current) => {
+      if (!current) return current;
+      setInspectSession({ backup: current.backup, manifestState: { kind: "loading" } });
+      void fetchManifestFor(current.backup).then((manifestState) => {
+        setInspectSession((latest) =>
+          latest && latest.backup.id === current.backup.id
+            ? { backup: current.backup, manifestState }
+            : latest
+        );
+      });
+      return current;
+    });
+  }, [fetchManifestFor]);
+
   const filteredBackups = backups.filter((b) => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
@@ -183,6 +274,15 @@ export function BackupManager({
       String(b.port).includes(q)
     );
   });
+
+  // The drawer closes itself when its subject is no longer in the backup
+  // list (e.g. after a delete). We derive this at render time rather than in
+  // an effect so we don't fight the lint rule that bans setState in effects.
+  const knownBackupIds = new Set(backups.map((b) => b.id));
+  const openInspectSession =
+    inspectSession && knownBackupIds.has(inspectSession.backup.id)
+      ? inspectSession
+      : null;
 
   return (
     <div className="space-y-6">
@@ -485,6 +585,75 @@ export function BackupManager({
                             )}
                           </button>
 
+                          {/* Inspect Button */}
+                          {(() => {
+                            const availability = inspectAvailability[backup.id];
+                            const unavailable = availability === "unavailable";
+                            const isChecking =
+                              availability === undefined &&
+                              inspectingId === backup.id;
+                            const inspectTitle = unavailable
+                              ? "This backup predates the inspection feature."
+                              : "Inspect backup contents";
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => void handleInspect(backup)}
+                                disabled={unavailable || isChecking}
+                                title={inspectTitle}
+                                aria-label={inspectTitle}
+                                className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {isChecking ? (
+                                  <>
+                                    <svg
+                                      className="h-3.5 w-3.5 animate-spin text-zinc-500"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                      ></circle>
+                                      <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                      ></path>
+                                    </svg>
+                                    <span>Checking...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg
+                                      className="h-3.5 w-3.5 text-zinc-500"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                      strokeWidth="2"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                      />
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                      />
+                                    </svg>
+                                    <span>Inspect</span>
+                                  </>
+                                )}
+                              </button>
+                            );
+                          })()}
+
                           {/* Delete Button */}
                           <button
                             type="button"
@@ -516,6 +685,16 @@ export function BackupManager({
           )}
         </div>
       </div>
+
+      <InspectDrawer
+        key={openInspectSession?.backup.id ?? "closed"}
+        backup={openInspectSession?.backup ?? null}
+        manifestState={
+          openInspectSession?.manifestState ?? { kind: "loading" }
+        }
+        onRetry={handleInspectRetry}
+        onClose={() => setInspectSession(null)}
+      />
     </div>
   );
 }

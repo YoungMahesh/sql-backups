@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] After a successful dump completes, a manifest JSON object is present in S3 next to the `.sql.gz`, at a key derived from the dump key.
-- [ ] The manifest JSON contains `version: 1`, the uncompressed byte count of the dump (measured before gzip), and an entry per base table with `name` and `rowCount`.
-- [ ] For dumps with no base tables, the manifest's `tables` array is empty (not missing, not null).
-- [ ] If the manifest upload fails, the backup still completes successfully and a warning is logged; no exception propagates to the caller.
-- [ ] Existing scheduled backups continue to work and inherit the manifest capture with no behavioural change beyond the manifest side-effect.
-- [ ] The existing writer test file gains assertions covering: manifest emission alongside the dump, correct table names and row counts, correct uncompressed byte count, derived manifest key, and best-effort semantics on manifest upload failure.
-- [ ] `CONTEXT.md` includes a "Backup Manifest" entry with a precise definition and at least two avoided terms.
-- [ ] `docs/adr/0005-backup-manifest-for-content-inspection.md` exists, is marked Status: accepted, documents the chosen hybrid (manifest in S3 + on-demand parse), and lists the rejected alternatives with reasons.
+- [x] After a successful dump completes, a manifest JSON object is present in S3 next to the `.sql.gz`, at a key derived from the dump key.
+- [x] The manifest JSON contains `version: 1`, the uncompressed byte count of the dump (measured before gzip), and an entry per base table with `name` and `rowCount`.
+- [x] For dumps with no base tables, the manifest's `tables` array is empty (not missing, not null).
+- [x] If the manifest upload fails, the backup still completes successfully and a warning is logged; no exception propagates to the caller.
+- [x] Existing scheduled backups continue to work and inherit the manifest capture with no behavioural change beyond the manifest side-effect.
+- [x] The existing writer test file gains assertions covering: manifest emission alongside the dump, correct table names and row counts, correct uncompressed byte count, derived manifest key, and best-effort semantics on manifest upload failure.
+- [x] `CONTEXT.md` includes a "Backup Manifest" entry with a precise definition and at least two avoided terms.
+- [x] `docs/adr/0005-backup-manifest-for-content-inspection.md` exists, is marked Status: accepted, documents the chosen hybrid (manifest in S3 + on-demand parse), and lists the rejected alternatives with reasons.

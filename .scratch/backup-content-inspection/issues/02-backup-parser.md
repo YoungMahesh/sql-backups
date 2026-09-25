@@ -4,14 +4,14 @@
 
 **Blocked by:** None (tests reuse writer-produced fixtures already present in the existing writer test file)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `extractTableSchema(stream, tableName)` returns the matching `CREATE TABLE` SQL as a string, or null if no matching table is found.
-- [ ] `extractTableRows(stream, tableName, limit)` returns up to `limit` row objects as plain JS values, or null if the table is not found.
-- [ ] Row parsing correctly handles: `NULL`, boolean (`'0'`/`'1'`), finite numbers, datetimes, Buffers encoded as `X'...'`, JSON-encoded objects, and strings containing every escape sequence the writer emits (`\\`, `\'`, `\0`, `\n`, `\r`, `\Z`).
-- [ ] Backticked identifiers with embedded backticks are handled correctly when matching table names.
-- [ ] When the dump contains multiple tables, asking for rows from table A never returns rows from table B.
-- [ ] View sections (`DROP VIEW`, `CREATE VIEW`) and trigger sections (`DELIMITER ;;;`, `SHOW CREATE TRIGGER`) are skipped without raising errors.
-- [ ] Empty tables return an empty array (not null, not an exception).
-- [ ] Parser operates on a Node.js Readable stream of the gzipped dump and handles backpressure without buffering the full dump in memory.
-- [ ] Unit tests cover every behaviour above, using fixtures produced by the actual writer so the parser cannot drift from the writer's output format.
+- [x] `extractTableSchema(stream, tableName)` returns the matching `CREATE TABLE` SQL as a string, or null if no matching table is found.
+- [x] `extractTableRows(stream, tableName, limit)` returns up to `limit` row objects as plain JS values, or null if the table is not found.
+- [x] Row parsing correctly handles: `NULL`, boolean (`'0'`/`'1'`), finite numbers, datetimes, Buffers encoded as `X'...'`, JSON-encoded objects, and strings containing every escape sequence the writer emits (`\\`, `\'`, `\0`, `\n`, `\r`, `\Z`).
+- [x] Backticked identifiers with embedded backticks are handled correctly when matching table names.
+- [x] When the dump contains multiple tables, asking for rows from table A never returns rows from table B.
+- [x] View sections (`DROP VIEW`, `CREATE VIEW`) and trigger sections (`DELIMITER ;;;`, `SHOW CREATE TRIGGER`) are skipped without raising errors.
+- [x] Empty tables return an empty array (not null, not an exception).
+- [x] Parser operates on a Node.js Readable stream of the gzipped dump and handles backpressure without buffering the full dump in memory.
+- [x] Unit tests cover every behaviour above, using fixtures produced by the actual writer so the parser cannot drift from the writer's output format.

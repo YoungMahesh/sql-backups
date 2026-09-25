@@ -4,15 +4,15 @@
 
 **Blocked by:** 01 (manifest must exist for new backups for the demo to be meaningful)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] An "Inspect" button appears on every backup row, positioned between Download and Delete, matching the existing button visual style.
-- [ ] Clicking Inspect on a backup that has a manifest opens a side drawer (right-anchored on `>=sm`, full-screen modal on `<sm`).
-- [ ] The drawer's Tables tab fetches the manifest and displays every table name alongside its row count.
-- [ ] An empty state is shown when the manifest's `tables` array is empty.
-- [ ] A loading state is shown while the manifest is in flight; an error state with retry is shown on fetch failure.
-- [ ] Clicking Inspect on a backup that lacks a manifest does not open a drawer; the button is rendered disabled with a tooltip explaining the backup predates the inspection feature.
-- [ ] The drawer closes via Escape key, backdrop click, and a visible X button in the drawer header.
-- [ ] On viewports below the small breakpoint, the drawer takes over the full screen with a back arrow instead of being a right-side panel.
-- [ ] The existing Download and Delete flows remain byte-for-byte unchanged.
-- [ ] The drawer is mounted as a sibling of the existing backup-manager header card; no global modal manager is introduced.
+- [x] An "Inspect" button appears on every backup row, positioned between Download and Delete, matching the existing button visual style.
+- [x] Clicking Inspect on a backup that has a manifest opens a side drawer (right-anchored on `>=sm`, full-screen modal on `<sm`).
+- [x] The drawer's Tables tab fetches the manifest and displays every table name alongside its row count.
+- [x] An empty state is shown when the manifest's `tables` array is empty.
+- [x] A loading state is shown while the manifest is in flight; an error state with retry is shown on fetch failure.
+- [x] Clicking Inspect on a backup that lacks a manifest does not open a drawer; the button is rendered disabled with a tooltip explaining why.
+- [x] The drawer closes via Escape key, backdrop click, and a visible X button in the drawer header.
+- [x] On viewports below the small breakpoint, the drawer takes over the full screen with a back arrow instead of being a right-side panel.
+- [x] The existing Download and Delete flows remain byte-for-byte unchanged.
+- [x] The drawer is mounted as a sibling of the existing backup-manager header card; no global modal manager is introduced.
