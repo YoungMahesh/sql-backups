@@ -28,3 +28,7 @@ _Avoid_: Recurring Backup, Backup Rule, Backup Policy
 One attempted execution of a Scheduled Backup, recorded with its outcome (`success`, `failed`, `skipped`, or `running`).
 _Avoid_: Backup Attempt, Job Execution, Backup History Entry
 
+**Backup Manifest**:
+A small JSON document captured at backup time alongside a Database Backup, listing the dump's base tables with their row counts and the total uncompressed dump size. Stored as a sibling object in object storage under the same key prefix as the `.sql.gz`, and consumed by the inspector to list tables and gate the raw-view size guardrail without re-parsing the dump.
+_Avoid_: Backup Index, Backup Summary, Dump Catalog, Sidecar JSON
+

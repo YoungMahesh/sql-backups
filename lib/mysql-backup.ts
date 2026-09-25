@@ -1,7 +1,12 @@
 import mysql, { type Connection, type ConnectionOptions } from "mysql2/promise";
 import zlib from "node:zlib";
 import { PassThrough, Transform, once } from "node:stream";
-import { generateBackupS3Key, uploadBackupStream } from "./s3";
+import { generateBackupS3Key, uploadBackupStream, uploadBackupManifest } from "./s3";
+import {
+  formatManifest,
+  type BackupManifest,
+  type BackupManifestTableEntry,
+} from "./manifest";
 
 export const SYSTEM_DATABASES = new Set([
   "information_schema",
@@ -27,7 +32,7 @@ export function escapeSqlValue(val: unknown): string {
   }
 
   if (typeof val === "boolean") {
-    return val ? "1" : "0";
+    return val ? "'1'" : "'0'";
   }
 
   if (typeof val === "number") {
@@ -100,12 +105,36 @@ export interface BackupDatabaseOptions {
   connectionOptions: ConnectionOptions;
   databaseName: string;
   userId: string;
+  /**
+   * Test seam: an injected MySQL connection. When omitted, the writer opens one
+   * from `connectionOptions`. Production callers never set this.
+   */
+  connection?: Connection;
+  /**
+   * Test seam: receives the manifest JSON bytes after a successful dump.
+   * Defaults to `uploadBackupManifest`. Best-effort: an upload failure
+   * logs a warning and does not fail the backup.
+   */
+  manifestSink?: ManifestSink;
 }
 
 export interface BackupResult {
   s3Key: string;
   sizeBytes: number;
 }
+
+/**
+ * Sink that receives a Backup Manifest JSON sibling as bytes.
+ */
+export interface ManifestSink {
+  uploadManifest(dumpKey: string, manifestBytes: Buffer | Uint8Array): Promise<void>;
+}
+
+const defaultManifestSink: ManifestSink = {
+  async uploadManifest(dumpKey, manifestBytes) {
+    await uploadBackupManifest(dumpKey, manifestBytes);
+  },
+};
 
 /**
  * Writes data to a stream respecting backpressure.
@@ -142,30 +171,51 @@ export async function backupDatabaseToS3(options: BackupDatabaseOptions): Promis
   let conn: Connection | null = null;
   const passThrough = new PassThrough();
 
-  try {
-    conn = await mysql.createConnection(targetConnectionOptions);
+  const tableRowCounts: BackupManifestTableEntry[] = [];
+  const tableOrder: string[] = [];
+  let uncompressedSizeBytes = 0;
 
+  let uploadPromise: Promise<void> | null = null;
+
+  try {
+    conn =
+      options.connection ??
+      (await mysql.createConnection(targetConnectionOptions));
+
+    const uncompressedByteCounter = new Transform({
+      transform(chunk, _encoding, callback) {
+        uncompressedSizeBytes += chunk.length;
+        callback(null, chunk);
+      },
+    });
     const gzip = zlib.createGzip({ level: 6 });
 
     let compressedSizeBytes = 0;
-    const byteCounter = new Transform({
+    const compressedByteCounter = new Transform({
       transform(chunk, _encoding, callback) {
         compressedSizeBytes += chunk.length;
         callback(null, chunk);
       },
     });
 
-    const uploadPipeline = passThrough.pipe(gzip).pipe(byteCounter);
+    const uploadPipeline = passThrough
+      .pipe(uncompressedByteCounter)
+      .pipe(gzip)
+      .pipe(compressedByteCounter);
 
-    // Launch S3 upload in the background while feeding the stream
-    const uploadPromise = uploadBackupStream(s3Key, uploadPipeline);
+    const manifestSink = options.manifestSink ?? defaultManifestSink;
+
+    uploadPromise = uploadBackupStream(s3Key, uploadPipeline);
 
     // Handle pipeline errors so upload promise fails rather than hangs
     passThrough.on("error", (err) => {
+      uncompressedByteCounter.destroy(err);
+    });
+    uncompressedByteCounter.on("error", (err) => {
       gzip.destroy(err);
     });
     gzip.on("error", (err) => {
-      byteCounter.destroy(err);
+      compressedByteCounter.destroy(err);
     });
 
     // Write header comments
@@ -188,6 +238,8 @@ export async function backupDatabaseToS3(options: BackupDatabaseOptions): Promis
       : [];
 
     for (const table of tables) {
+      let tableRowCount = 0;
+
       // Table Schema
       await writeWithBackpressure(passThrough, `--\n-- Table structure for table ${escapeIdentifier(table)}\n--\n`);
       await writeWithBackpressure(passThrough, `DROP TABLE IF EXISTS ${escapeIdentifier(table)};\n`);
@@ -220,6 +272,7 @@ export async function backupDatabaseToS3(options: BackupDatabaseOptions): Promis
         await new Promise<void>((resolve, reject) => {
           queryStream.on("data", async (row: Record<string, unknown>) => {
             batch.push(row);
+            tableRowCount++;
             if (batch.length >= BATCH_SIZE) {
               queryStream.pause();
               try {
@@ -254,12 +307,18 @@ export async function backupDatabaseToS3(options: BackupDatabaseOptions): Promis
       } else {
         // Fallback for mock/test environments
         const [rows] = await conn.query(`SELECT * FROM ${escapeIdentifier(table)};`);
-        if (Array.isArray(rows) && rows.length > 0) {
-          const insertSql = formatInsertStatement(table, rows as Record<string, unknown>[]);
-          await writeWithBackpressure(passThrough, insertSql);
+        if (Array.isArray(rows)) {
+          tableRowCount = rows.length;
+          if (rows.length > 0) {
+            const insertSql = formatInsertStatement(table, rows as Record<string, unknown>[]);
+            await writeWithBackpressure(passThrough, insertSql);
+          }
         }
         await writeWithBackpressure(passThrough, `\n`);
       }
+
+      tableOrder.push(table);
+      tableRowCounts.push({ name: table, rowCount: tableRowCount });
     }
 
     // 2. Fetch and dump VIEWS
@@ -318,6 +377,24 @@ export async function backupDatabaseToS3(options: BackupDatabaseOptions): Promis
     // Await S3 upload completion
     await uploadPromise;
 
+    const manifest: BackupManifest = {
+      version: 1,
+      uncompressedSizeBytes,
+      tables: tableOrder.map((name, idx) => ({
+        name,
+        rowCount: tableRowCounts[idx]?.rowCount ?? 0,
+      })),
+    };
+
+    try {
+      await manifestSink.uploadManifest(s3Key, formatManifest(manifest));
+    } catch (manifestErr) {
+      console.warn(
+        `[mysql-backup] manifest upload failed for ${s3Key}; backup retained without manifest:`,
+        manifestErr instanceof Error ? manifestErr.message : manifestErr
+      );
+    }
+
     return {
       s3Key,
       sizeBytes: compressedSizeBytes,
@@ -332,6 +409,12 @@ export async function backupDatabaseToS3(options: BackupDatabaseOptions): Promis
         await conn.end();
       } catch {
         // Ignore connection close errors
+      }
+    }
+    if (uploadPromise) {
+      try {
+        await uploadPromise;
+      } catch {
       }
     }
   }

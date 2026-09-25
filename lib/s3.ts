@@ -1,11 +1,13 @@
 import {
   S3Client,
   GetObjectCommand,
+  PutObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
 import type { Readable } from "node:stream";
+import { deriveManifestKey } from "./manifest";
 
 export interface GenerateBackupKeyOptions {
   userId: string;
@@ -142,4 +144,29 @@ export async function deleteBackupObject(key: string): Promise<void> {
   });
 
   await client.send(command);
+}
+
+/**
+ * Uploads a Backup Manifest JSON sibling object alongside a Database Backup dump.
+ * The manifest key is derived from the dump key per the convention in `manifest.ts`.
+ */
+export async function uploadBackupManifest(
+  dumpKey: string,
+  manifestBytes: Buffer | Uint8Array
+): Promise<void> {
+  const client = getS3Client();
+  const { bucketName } = getS3Config();
+  const manifestKey = deriveManifestKey(dumpKey);
+  if (!manifestKey) {
+    throw new Error(`Cannot derive manifest key from dump key: ${dumpKey}`);
+  }
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucketName,
+      Key: manifestKey,
+      Body: manifestBytes,
+      ContentType: "application/json",
+    })
+  );
 }
