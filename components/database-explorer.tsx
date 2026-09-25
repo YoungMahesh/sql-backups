@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ScheduleForm, type SavedConnectionOption } from "./schedule-form";
+import { ConnectionSchedules } from "./connection-schedules";
 
 interface ServerInfo {
   host: string;
@@ -78,6 +80,10 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
   const [backingUpDb, setBackingUpDb] = useState<string | null>(null);
   const [backupSuccess, setBackupSuccess] = useState<{ dbName: string; message: string } | null>(null);
   const [backupError, setBackupError] = useState<{ dbName: string; message: string } | null>(null);
+
+  // Schedule State
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleTargetDb, setScheduleTargetDb] = useState<string | null>(null);
 
   // Saved Connections State
   const [savedConnections, setSavedConnections] = useState<SavedConnectionItem[]>([]);
@@ -721,6 +727,8 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                         <p className="font-mono text-xs text-zinc-500 truncate" title={item.maskedUri}>
                           {item.maskedUri}
                         </p>
+
+                        <ConnectionSchedules savedConnectionId={item.id} />
                       </div>
 
                       {/* Action Buttons */}
@@ -1012,30 +1020,50 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
                         </div>
 
                         {/* Backup button */}
-                        <button
-                          type="button"
-                          onClick={() => handleBackup(dbName)}
-                          disabled={backingUpDb !== null}
-                          title={`Backup ${dbName} to S3`}
-                          className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
-                        >
-                          {isBackingUp ? (
-                            <>
-                              <svg className="h-3.5 w-3.5 animate-spin text-zinc-600" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              <span>Backing up...</span>
-                            </>
-                          ) : (
-                            <>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleBackup(dbName)}
+                            disabled={backingUpDb !== null}
+                            title={`Backup ${dbName} to S3`}
+                            className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+                          >
+                            {isBackingUp ? (
+                              <>
+                                <svg className="h-3.5 w-3.5 animate-spin text-zinc-600" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Backing up...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="h-3.5 w-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                <span>Backup</span>
+                              </>
+                            )}
+                          </button>
+                          {activeConnection?.mode === "saved" && activeConnection.savedConnectionId && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setScheduleTargetDb(dbName);
+                                setScheduleModalOpen(true);
+                              }}
+                              disabled={backingUpDb !== null}
+                              title={`Schedule recurring backups of ${dbName}`}
+                              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+                            >
                               <svg className="h-3.5 w-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                <circle cx="12" cy="12" r="9" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 2" />
                               </svg>
-                              <span>Backup</span>
-                            </>
+                              <span>Schedule</span>
+                            </button>
                           )}
-                        </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -1045,6 +1073,27 @@ export function DatabaseExplorer({ onBackupCreated }: DatabaseExplorerProps = {}
           </div>
         </div>
       )}
+
+      <ScheduleForm
+        open={scheduleModalOpen}
+        onClose={() => setScheduleModalOpen(false)}
+        onSaved={() => {
+          setScheduleTargetDb(null);
+        }}
+        connections={savedConnections.map<SavedConnectionOption>((c) => ({
+          id: c.id,
+          host: c.host,
+          port: c.port,
+          username: c.username,
+          database: c.database,
+        }))}
+        defaultDatabase={scheduleTargetDb ?? undefined}
+        defaultSavedConnectionId={
+          activeConnection?.mode === "saved"
+            ? activeConnection.savedConnectionId
+            : undefined
+        }
+      />
     </div>
   );
 }

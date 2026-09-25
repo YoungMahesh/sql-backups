@@ -4,13 +4,17 @@ import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { DatabaseExplorer } from "@/components/database-explorer";
 import { BackupManager } from "@/components/backup-manager";
+import { ScheduleManager } from "@/components/schedule-manager";
 
 export default function Home() {
   const { data: session, isPending: isSessionLoading } = authClient.useSession();
 
-  const [activeTab, setActiveTab] = useState<"explorer" | "backups">("explorer");
+  const [activeTab, setActiveTab] = useState<"explorer" | "backups" | "schedules">(
+    "explorer"
+  );
   const [backupsCount, setBackupsCount] = useState<number | null>(null);
   const [backupsRevision, setBackupsRevision] = useState(0);
+  const [schedulesCount, setSchedulesCount] = useState<number | null>(null);
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [name, setName] = useState("");
@@ -290,6 +294,32 @@ export default function Home() {
                   </span>
                 )}
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("schedules")}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition ${
+                  activeTab === "schedules"
+                    ? "bg-white text-zinc-900 shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 2" />
+                </svg>
+                <span>Schedules</span>
+                {schedulesCount !== null && (
+                  <span className="inline-flex items-center rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-bold text-zinc-800">
+                    {schedulesCount}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -309,6 +339,12 @@ export default function Home() {
                 setBackupsCount((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
               }}
               onBackupsLoaded={setBackupsCount}
+            />
+          </div>
+
+          <div className={activeTab === "schedules" ? "block" : "hidden"}>
+            <ScheduleManager
+              onSchedulesLoaded={setSchedulesCount}
             />
           </div>
         </main>

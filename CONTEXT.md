@@ -20,3 +20,11 @@ _Avoid_: Connection History, Saved DB, Server Profile
 An exported snapshot of a User Database's schema and records, serialized as a compressed SQL dump, stored in S3-compatible object storage, and registered with metadata in the application database.
 _Avoid_: Dump, Snapshot, DB Export, Archive
 
+**Scheduled Backup**:
+A user-managed cron recurrence that triggers a Database Backup of one User Database on one Saved Connection at specified times in a chosen IANA timezone.
+_Avoid_: Recurring Backup, Backup Rule, Backup Policy
+
+**Backup Run**:
+One attempted execution of a Scheduled Backup, recorded with its outcome (`success`, `failed`, `skipped`, or `running`).
+_Avoid_: Backup Attempt, Job Execution, Backup History Entry
+
