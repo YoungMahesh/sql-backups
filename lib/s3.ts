@@ -174,6 +174,33 @@ export async function uploadBackupManifest(
 }
 
 /**
+ * Opens a streaming read of a Database Backup's `.sql.gz` object in S3.
+ *
+ * Returns the gzipped bytes as a Node `Readable` so the parser can consume
+ * them with backpressure instead of buffering the whole dump in memory.
+ *
+ * Throws on any non-`NoSuchKey` S3 error so callers can distinguish a
+ * transient S3 failure from a definitively-missing object.
+ */
+export async function getBackupDumpStream(key: string): Promise<Readable> {
+  const client = getS3Client();
+  const { bucketName } = getS3Config();
+
+  const response = await client.send(
+    new GetObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    })
+  );
+
+  if (!response.Body) {
+    throw new Error(`S3 GetObject returned no body for ${key}`);
+  }
+
+  return response.Body as Readable;
+}
+
+/**
  * Fetches a Backup Manifest JSON sibling object from S3.
  *
  * Returns the manifest bytes when present. Returns null when the dump key

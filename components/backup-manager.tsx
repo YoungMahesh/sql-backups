@@ -5,6 +5,7 @@ import { formatBytes } from "@/lib/format";
 import {
   InspectDrawer,
   type ManifestViewState,
+  type PanelState,
 } from "@/components/inspect-drawer";
 
 export interface BackupItem {
@@ -249,6 +250,66 @@ export function BackupManager({
     // For error/unavailable states, leave the drawer closed (or unchanged) so
     // a backup predating the feature never opens the inspector.
   };
+
+  const fetchSchemaFor = useCallback(
+    async (
+      backupId: string,
+      table: string
+    ): Promise<PanelState<string>> => {
+      try {
+        const res = await fetch(
+          `/api/mysql/backups/${backupId}/tables/${encodeURIComponent(table)}/schema`
+        );
+        if (res.status === 404) {
+          return { kind: "error", message: "Schema not found for this table." };
+        }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Could not load table schema.");
+        }
+        const data = await res.json();
+        if (typeof data.schema !== "string") {
+          throw new Error("Could not load table schema.");
+        }
+        return { kind: "loaded", data: data.schema };
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Could not load table schema.";
+        return { kind: "error", message };
+      }
+    },
+    []
+  );
+
+  const fetchRowsFor = useCallback(
+    async (
+      backupId: string,
+      table: string
+    ): Promise<PanelState<Record<string, unknown>[]>> => {
+      try {
+        const res = await fetch(
+          `/api/mysql/backups/${backupId}/tables/${encodeURIComponent(table)}/rows`
+        );
+        if (res.status === 404) {
+          return { kind: "error", message: "Table not found in backup." };
+        }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Could not load table rows.");
+        }
+        const data = await res.json();
+        if (!Array.isArray(data.rows)) {
+          throw new Error("Could not load table rows.");
+        }
+        return { kind: "loaded", data: data.rows as Record<string, unknown>[] };
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Could not load table rows.";
+        return { kind: "error", message };
+      }
+    },
+    []
+  );
 
   const handleInspectRetry = useCallback(() => {
     setInspectSession((current) => {
@@ -694,6 +755,8 @@ export function BackupManager({
         }
         onRetry={handleInspectRetry}
         onClose={() => setInspectSession(null)}
+        onFetchSchema={fetchSchemaFor}
+        onFetchRows={fetchRowsFor}
       />
     </div>
   );
